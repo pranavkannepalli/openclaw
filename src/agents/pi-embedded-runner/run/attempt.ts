@@ -11,6 +11,7 @@ import {
   runQuotaSuspensionMaintenance,
   updateSessionStoreEntry,
 } from "../../../config/sessions/store.js";
+import { hasSqliteSessionTranscriptEvents } from "../../../config/sessions/transcript-store.sqlite.js";
 import { resolveContextEngineOwnerPluginId } from "../../../context-engine/registry.js";
 import type { AssembleResult } from "../../../context-engine/types.js";
 import { emitTrustedDiagnosticEvent } from "../../../infra/diagnostic-events.js";
@@ -230,7 +231,6 @@ import {
   updateActiveEmbeddedRunSnapshot,
 } from "../runs.js";
 import { buildEmbeddedSandboxInfo } from "../sandbox-info.js";
-import { prewarmSessionFile, trackSessionManagerAccess } from "../session-manager-cache.js";
 import { resolveEmbeddedRunSkillEntries } from "../skills-runtime.js";
 import {
   describeEmbeddedAgentStreamStrategy,
@@ -1621,10 +1621,10 @@ export async function runEmbeddedAttempt(
         debug: (message) => log.debug(message),
         warn: (message) => log.warn(message),
       });
-      const hadSessionFile = await fs
-        .stat(params.sessionFile)
-        .then(() => true)
-        .catch(() => false);
+      const hadSessionFile = hasSqliteSessionTranscriptEvents({
+        agentId: sessionAgentId,
+        sessionId: params.sessionId,
+      });
 
       const transcriptPolicy = resolveAttemptTranscriptPolicy({
         runtimePlan: params.runtimePlan,
@@ -1635,7 +1635,6 @@ export async function runEmbeddedAttempt(
         env: process.env,
       });
 
-      await prewarmSessionFile(params.sessionFile);
       sessionManager = guardSessionManager(
         openTranscriptSessionManager({
           sessionFile: params.sessionFile,
@@ -1662,8 +1661,6 @@ export async function runEmbeddedAttempt(
           },
         },
       );
-      trackSessionManagerAccess(params.sessionFile);
-
       await runAttemptContextEngineBootstrap({
         hadSessionFile,
         contextEngine: activeContextEngine,
@@ -2470,7 +2467,7 @@ export async function runEmbeddedAttempt(
               agentId: sessionAgentId,
             });
             await runQuotaSuspensionMaintenance({ storePath });
-            const store = loadSessionStore(storePath, { skipCache: true });
+            const store = loadSessionStore(storePath);
             const sessionEntry = store[params.sessionKey];
             const suspension = sessionEntry?.quotaSuspension;
             if (suspension?.state === "resuming") {
