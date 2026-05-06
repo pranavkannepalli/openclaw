@@ -10,7 +10,7 @@ import {
   updatePairedNodeMetadata,
   verifyNodeToken,
 } from "./node-pairing.js";
-import { resolvePairingPaths } from "./pairing-files.js";
+import { readPairingStateRecord, resolvePairingPaths } from "./pairing-files.js";
 
 async function setupPairedNode(baseDir: string): Promise<string> {
   const request = await requestNodePairing(
@@ -141,7 +141,7 @@ describe("node pairing tokens", () => {
     });
   });
 
-  test("recovers when pairing state files were written as arrays", async () => {
+  test("ignores legacy pairing state files at runtime", async () => {
     await withNodePairingDir(async (baseDir) => {
       const paths = resolvePairingPaths(baseDir, "nodes");
       await fs.mkdir(paths.dir, { recursive: true });
@@ -162,13 +162,18 @@ describe("node pairing tokens", () => {
         baseDir,
       );
 
-      const approvedRecord = requireRecord(approved);
-      const approvedNode = requireRecord(approvedRecord.node);
-      expect(approvedNode.nodeId).toBe("node-array-state");
-      expect(Array.isArray(JSON.parse(await fs.readFile(paths.pendingPath, "utf8")))).toBe(false);
-      const pairedState = requireRecord(JSON.parse(await fs.readFile(paths.pairedPath, "utf8")));
-      const pairedNode = requireRecord(pairedState["node-array-state"]);
-      expect(pairedNode.nodeId).toBe("node-array-state");
+      expect(approved).toEqual(
+        expect.objectContaining({
+          node: expect.objectContaining({ nodeId: "node-array-state" }),
+        }),
+      );
+      expect(Array.isArray(JSON.parse(await fs.readFile(paths.pendingPath, "utf8")))).toBe(true);
+      expect(Array.isArray(JSON.parse(await fs.readFile(paths.pairedPath, "utf8")))).toBe(true);
+      expect(readPairingStateRecord({ baseDir, subdir: "nodes", key: "paired" })).toEqual(
+        expect.objectContaining({
+          "node-array-state": expect.objectContaining({ nodeId: "node-array-state" }),
+        }),
+      );
     });
   });
 
@@ -266,7 +271,7 @@ describe("node pairing tokens", () => {
     });
   });
 
-  test("refuses to overwrite corrupt paired node state when requesting pairing", async () => {
+  test("ignores corrupt legacy paired node state when requesting pairing", async () => {
     await withNodePairingDir(async (baseDir) => {
       const { dir, pairedPath } = resolvePairingPaths(baseDir, "nodes");
       await fs.mkdir(dir, { recursive: true });
@@ -280,7 +285,7 @@ describe("node pairing tokens", () => {
           },
           baseDir,
         ),
-      ).rejects.toThrow(/paired\.json/);
+      ).resolves.toEqual(expect.objectContaining({ status: "pending" }));
       await expect(fs.readFile(pairedPath, "utf8")).resolves.toBe("{not-json}");
     });
   });
