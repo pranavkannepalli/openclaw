@@ -166,7 +166,7 @@ describe("active-memory plugin", () => {
   const expectLinesNotToContain = (lines: string[], text: string) => {
     expect(lines).not.toEqual(expect.arrayContaining([expect.stringContaining(text)]));
   };
-  const writeTranscriptJsonl = async (sessionFile: string, records: unknown[]) => {
+  const writeSqliteTranscriptEvents = async (sessionFile: string, records: unknown[]) => {
     const sessionId = path.basename(sessionFile, ".jsonl");
     for (const record of records) {
       appendSqliteSessionTranscriptEvent({
@@ -1982,7 +1982,7 @@ describe("active-memory plugin", () => {
             },
           }),
         ];
-        await writeTranscriptJsonl(
+        await writeSqliteTranscriptEvents(
           params.sessionFile,
           lines.map((line) => JSON.parse(line) as unknown),
         );
@@ -2251,7 +2251,7 @@ describe("active-memory plugin", () => {
     };
     runEmbeddedPiAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
-        await writeTranscriptJsonl(params.sessionFile, [
+        await writeSqliteTranscriptEvents(params.sessionFile, [
           { type: "message", message: { role: "user", content: "ignore this user text" } },
           {
             type: "message",
@@ -2314,7 +2314,7 @@ describe("active-memory plugin", () => {
     runEmbeddedPiAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
         tempSessionFile = params.sessionFile;
-        await writeTranscriptJsonl(params.sessionFile, [
+        await writeSqliteTranscriptEvents(params.sessionFile, [
           {
             type: "message",
             message: { role: "assistant", content: "temporary partial recall summary" },
@@ -2362,7 +2362,7 @@ describe("active-memory plugin", () => {
     };
     runEmbeddedPiAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
-        await writeTranscriptJsonl(params.sessionFile, []);
+        await writeSqliteTranscriptEvents(params.sessionFile, []);
         return await waitForAbort(params.abortSignal);
       },
     );
@@ -2424,7 +2424,7 @@ describe("active-memory plugin", () => {
     };
     runEmbeddedPiAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
-        await writeTranscriptJsonl(params.sessionFile, [
+        await writeSqliteTranscriptEvents(params.sessionFile, [
           {
             type: "message",
             message: {
@@ -2470,7 +2470,7 @@ describe("active-memory plugin", () => {
     };
     runEmbeddedPiAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
-        await writeTranscriptJsonl(params.sessionFile, [
+        await writeSqliteTranscriptEvents(params.sessionFile, [
           {
             type: "message",
             message: { role: "assistant", content: "partial abort summary" },
@@ -2518,7 +2518,7 @@ describe("active-memory plugin", () => {
       updatedAt: 0,
     };
     runEmbeddedPiAgent.mockImplementationOnce(async (params: { sessionFile: string }) => {
-      await writeTranscriptJsonl(params.sessionFile, [
+      await writeSqliteTranscriptEvents(params.sessionFile, [
         {
           type: "message",
           message: { role: "assistant", content: "must not be surfaced from generic errors" },
@@ -2543,7 +2543,7 @@ describe("active-memory plugin", () => {
 
   it("bounds partial assistant transcript reads by character cap for large JSONL files", async () => {
     const sessionFile = path.join(stateDir, "large-timeout-transcript.jsonl");
-    await writeTranscriptJsonl(
+    await writeSqliteTranscriptEvents(
       sessionFile,
       Array.from({ length: 50 }, () => ({
         type: "message",
@@ -2569,7 +2569,7 @@ describe("active-memory plugin", () => {
 
   it("skips malformed JSONL lines when reading partial assistant transcripts", async () => {
     const sessionFile = path.join(stateDir, "malformed-timeout-transcript.jsonl");
-    await writeTranscriptJsonl(sessionFile, [
+    await writeSqliteTranscriptEvents(sessionFile, [
       { type: "message", message: { role: "assistant", content: "valid partial summary" } },
     ]);
 
@@ -2583,7 +2583,7 @@ describe("active-memory plugin", () => {
 
   it("honors transcript maxLines caps for partial text and search debug reads", async () => {
     const sessionFile = path.join(stateDir, "max-lines-transcript.jsonl");
-    await writeTranscriptJsonl(sessionFile, [
+    await writeSqliteTranscriptEvents(sessionFile, [
       {
         type: "message",
         message: { role: "user", content: "line one" },
@@ -2928,7 +2928,7 @@ describe("active-memory plugin", () => {
     hoisted.sessionStore[sessionKey] = { sessionId: "s-terminal-zero-hit", updatedAt: 0 };
     runEmbeddedPiAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
-        await writeTranscriptJsonl(params.sessionFile, [
+        await writeSqliteTranscriptEvents(params.sessionFile, [
           {
             message: {
               role: "toolResult",
@@ -2973,7 +2973,7 @@ describe("active-memory plugin", () => {
       updatedAt: 0,
     };
     runEmbeddedPiAgent.mockImplementationOnce(async (params: { sessionFile: string }) => {
-      await writeTranscriptJsonl(params.sessionFile, [
+      await writeSqliteTranscriptEvents(params.sessionFile, [
         {
           message: {
             role: "toolResult",
@@ -3015,7 +3015,7 @@ describe("active-memory plugin", () => {
     hoisted.sessionStore[sessionKey] = { sessionId: "s-terminal-unavailable", updatedAt: 0 };
     runEmbeddedPiAgent.mockImplementationOnce(
       async (params: { sessionFile: string; abortSignal?: AbortSignal }) => {
-        await writeTranscriptJsonl(params.sessionFile, [
+        await writeSqliteTranscriptEvents(params.sessionFile, [
           {
             message: {
               role: "toolResult",
@@ -3061,7 +3061,7 @@ describe("active-memory plugin", () => {
     };
     plugin.register(api as unknown as OpenClawPluginApi);
     runEmbeddedPiAgent.mockImplementationOnce(async (params: { sessionFile: string }) => {
-      await writeTranscriptJsonl(params.sessionFile, [
+      await writeSqliteTranscriptEvents(params.sessionFile, [
         {
           message: {
             role: "toolResult",
