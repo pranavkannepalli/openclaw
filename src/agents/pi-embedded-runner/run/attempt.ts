@@ -2445,7 +2445,7 @@ export async function runEmbeddedAttempt(
               sessionKey: params.sessionKey,
             });
             const suspension = sessionEntry?.quotaSuspension;
-            if (suspension?.state === "resuming") {
+            if (sessionEntry && suspension?.state === "resuming") {
               const subagents = listSessionEntries({ agentId: sessionAgentId })
                 .map(({ entry }) => entry)
                 .filter((s) => s.spawnedBy === sessionEntry.sessionId)
@@ -4151,7 +4151,6 @@ export async function runEmbeddedAttempt(
           sessionManager,
           bundleMcpRuntime,
           bundleLspRuntime,
-          sessionLock,
           aborted: cleanupAborted,
           abortSettlePromise: cleanupAborted ? buildAbortSettlePromise() : null,
           runId: params.runId,

@@ -64,7 +64,7 @@ export async function cleanupEmbeddedAttemptResources(params: {
   sessionManager: unknown;
   bundleMcpRuntime?: { dispose(): Promise<void> | void };
   bundleLspRuntime?: { dispose(): Promise<void> | void };
-  sessionLock: { release(): Promise<void> | void };
+  sessionLock?: { release(): Promise<void> | void };
   aborted?: boolean;
   abortSettlePromise?: Promise<unknown> | null;
   runId?: string;
@@ -83,6 +83,8 @@ export async function cleanupEmbeddedAttemptResources(params: {
         sessionId: params.sessionId ?? "unknown",
       });
     }
+    // PERF: When the run was aborted (user stop / timeout), skip the expensive
+    // waitForIdle (up to 30 s) and just clear pending tool results synchronously.
     try {
       await params.flushPendingToolResultsAfterIdle({
         agent: params.session?.agent as IdleAwareAgent | null | undefined,
@@ -109,6 +111,6 @@ export async function cleanupEmbeddedAttemptResources(params: {
       /* best-effort */
     }
   } finally {
-    await params.sessionLock.release();
+    await params.sessionLock?.release();
   }
 }
