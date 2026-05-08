@@ -62,7 +62,6 @@ describe("artifacts RPC handlers", () => {
     vi.clearAllMocks();
     hoisted.getTaskSessionLookupByIdForStatus.mockReturnValue(undefined);
     hoisted.loadSessionEntry.mockReturnValue({
-      storePath: "/tmp/sessions.json",
       entry: { sessionId: "sess-main", sessionFile: "/tmp/sess-main.jsonl" },
     });
     mockedMessages([
@@ -84,7 +83,7 @@ describe("artifacts RPC handlers", () => {
 
   function mockedMessages(messages: unknown[]) {
     hoisted.visitSessionMessagesAsync.mockImplementation(
-      async (_sessionId, _storePath, _sessionFile, visit) => {
+      async (_sessionId, _sessionFile, visit) => {
         messages.forEach((message, index) => visit(message, index + 1));
         return messages.length;
       },
