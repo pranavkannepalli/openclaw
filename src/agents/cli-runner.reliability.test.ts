@@ -61,7 +61,9 @@ function setHookRunnerForTest(hookRunner: unknown): void {
   globalStore[hookRunnerGlobalStateKey] = state;
 }
 
-function createTranscriptLocator(params?: { history?: Array<{ role: "user"; content: string }> }) {
+function createTranscriptStateFixture(params?: {
+  history?: Array<{ role: "user"; content: string }>;
+}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-cli-hooks-"));
   vi.stubEnv("OPENCLAW_STATE_DIR", dir);
   upsertSessionEntry({
@@ -347,7 +349,7 @@ describe("runCliAgent reliability", () => {
         noOutputTimedOut: false,
       }),
     );
-    const { dir } = createTranscriptLocator({
+    const { dir } = createTranscriptStateFixture({
       history: [{ role: "user", content: "earlier context" }],
     });
 
@@ -576,7 +578,7 @@ describe("runCliAgent reliability", () => {
       runAgentEnd: vi.fn(async () => undefined),
     };
     setHookRunnerForTest(hookRunner);
-    const { dir } = createTranscriptLocator();
+    const { dir } = createTranscriptStateFixture();
 
     supervisorSpawnMock.mockResolvedValueOnce(
       createManagedRun({
@@ -688,7 +690,7 @@ describe("runCliAgent reliability", () => {
       runAgentEnd: vi.fn(async () => undefined),
     };
     setHookRunnerForTest(hookRunner);
-    const { dir } = createTranscriptLocator({
+    const { dir } = createTranscriptStateFixture({
       history: [{ role: "user", content: "earlier context" }],
     });
 
@@ -869,7 +871,7 @@ describe("runCliAgent reliability", () => {
       runAgentEnd: vi.fn(async () => undefined),
     };
     setHookRunnerForTest(hookRunner);
-    const { dir } = createTranscriptLocator({
+    const { dir } = createTranscriptStateFixture({
       history: Array.from({ length: MAX_CLI_SESSION_HISTORY_MESSAGES + 5 }, (_, index) => ({
         role: "user" as const,
         content: `history-${index}`,
@@ -979,7 +981,7 @@ describe("runCliAgent reliability", () => {
   });
 
   it("builds fresh-session history reseed prompts from hook-mutated prompts", async () => {
-    const { dir } = createTranscriptLocator({
+    const { dir } = createTranscriptStateFixture({
       history: [{ role: "user", content: "earlier ask" }],
     });
     const existingEvents = loadSqliteSessionTranscriptEvents({
