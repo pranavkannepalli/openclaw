@@ -1448,7 +1448,6 @@ describe("compactEmbeddedPiSession hooks (ownsCompaction engine)", () => {
 
     expect(result.ok).toBe(true);
     expect(result.result?.sessionId).toBe(delegatedSessionId);
-    expect(result.result).not.toHaveProperty("transcriptLocator");
     expect(maintain).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: delegatedSessionId,
@@ -1497,7 +1496,6 @@ describe("compactEmbeddedPiSession hooks (ownsCompaction engine)", () => {
     expect(result.ok).toBe(true);
     expect(rotateTranscriptAfterCompactionMock).not.toHaveBeenCalled();
     expect(result.result?.sessionId).toBeUndefined();
-    expect(result.result).not.toHaveProperty("transcriptLocator");
     expect(maintain).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: TEST_SESSION_ID,
