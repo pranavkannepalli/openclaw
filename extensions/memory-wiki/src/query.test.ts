@@ -123,12 +123,10 @@ function mockSessionTranscriptStore() {
       "agent:main:child-session": {
         sessionId: "child-session",
         updatedAt: 1,
-        sessionFile: "/tmp/openclaw/child-session.jsonl",
       },
       "agent:main:sibling-session": {
         sessionId: "sibling-session",
         updatedAt: 2,
-        sessionFile: "/tmp/openclaw/sibling-session.jsonl",
       },
     },
   });
@@ -164,7 +162,7 @@ function createMemoryManager(overrides?: {
 describe("isSessionMemoryPath", () => {
   it("classifies all current session storage layouts", () => {
     for (const relPath of [
-      "sessions/child-session.jsonl",
+      "sessions/main/child-session",
       "qmd/sessions/child-session.md",
       "qmd/sessions-main/child-session.md",
       "qmd\\sessions-main\\child-session.md",
@@ -723,7 +721,7 @@ describe("searchMemoryWiki", () => {
     const manager = createMemoryManager({
       searchResults: [
         {
-          path: "sessions/child-session.jsonl",
+          path: "sessions/main/child-session",
           startLine: 1,
           endLine: 2,
           score: 30,
@@ -760,7 +758,7 @@ describe("searchMemoryWiki", () => {
     });
 
     expect(results.map((result) => result.path)).toEqual([
-      "sessions/child-session.jsonl",
+      "sessions/main/child-session",
       "MEMORY.md",
     ]);
   });
@@ -776,7 +774,7 @@ describe("searchMemoryWiki", () => {
     const manager = createMemoryManager({
       searchResults: [
         {
-          path: "sessions/child-session.jsonl",
+          path: "sessions/main/child-session",
           startLine: 1,
           endLine: 2,
           score: 30,
@@ -813,7 +811,7 @@ describe("searchMemoryWiki", () => {
     });
 
     expect(results.map((result) => result.path)).toEqual([
-      "sessions/child-session.jsonl",
+      "sessions/main/child-session",
       "MEMORY.md",
     ]);
   });
@@ -1182,7 +1180,7 @@ describe("getMemoryWikiPage", () => {
         config,
         agentSessionKey: "agent:main:child-session",
         sandboxed: true,
-        lookup: "sessions/child-session.jsonl",
+        lookup: "sessions/main/child-session",
       }),
     ).rejects.toThrow(/wiki_get requires appConfig/);
   });
