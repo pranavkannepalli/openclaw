@@ -1905,6 +1905,7 @@ async function buildTimeoutRecallResult(params: {
     elapsedMs: params.elapsedMs,
     summary,
     searchDebug,
+    searchDebug,
   };
 }
 
@@ -2619,7 +2620,7 @@ async function maybeResolveActiveRecall(params: {
     );
     if (params.config.logging && persistedTranscriptScope) {
       params.api.logger.info?.(
-        `${logPrefix} transcript=${persistedTranscriptScope.agentId}/${persistedTranscriptScope.sessionId}`,
+        `${logPrefix} transcriptScope=${persistedTranscriptScope.agentId}/${persistedTranscriptScope.sessionId}`,
       );
     }
     const result: ActiveRecallResult =
