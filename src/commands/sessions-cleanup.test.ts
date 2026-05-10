@@ -13,7 +13,6 @@ const mocks = vi.hoisted(() => ({
   pruneStaleEntries: vi.fn(),
   capEntryCount: vi.fn(),
   updateSessionStore: vi.fn(),
-  enforceSessionDiskBudget: vi.fn(),
   resolveSessionCleanupAction: vi.fn(),
   runSessionsCleanup: vi.fn(),
   serializeSessionCleanupResult: vi.fn(),
@@ -39,7 +38,6 @@ vi.mock("../config/sessions.js", () => ({
   pruneStaleEntries: mocks.pruneStaleEntries,
   capEntryCount: mocks.capEntryCount,
   updateSessionStore: mocks.updateSessionStore,
-  enforceSessionDiskBudget: mocks.enforceSessionDiskBudget,
   resolveSessionCleanupAction: mocks.resolveSessionCleanupAction,
   runSessionsCleanup: mocks.runSessionsCleanup,
   serializeSessionCleanupResult: mocks.serializeSessionCleanupResult,
@@ -91,8 +89,6 @@ describe("sessionsCleanupCommand", () => {
       mode: "warn",
       pruneAfterMs: 7 * 24 * 60 * 60 * 1000,
       maxEntries: 500,
-      maxDiskBytes: null,
-      highWaterBytes: null,
     });
     mocks.pruneStaleEntries.mockImplementation(
       (
@@ -122,8 +118,6 @@ describe("sessionsCleanupCommand", () => {
         missingKeys: Set<string>;
         staleKeys: Set<string>;
         cappedKeys: Set<string>;
-        budgetEvictedKeys: Set<string>;
-        dmScopeRetiredKeys: Set<string>;
       }) => {
         if (params.dmScopeRetiredKeys.has(params.key)) {
           return "retire-dm-scope";
@@ -136,9 +130,6 @@ describe("sessionsCleanupCommand", () => {
         }
         if (params.cappedKeys.has(params.key)) {
           return "cap-overflow";
-        }
-        if (params.budgetEvictedKeys.has(params.key)) {
-          return "evict-budget";
         }
         return "keep";
       },
@@ -161,16 +152,6 @@ describe("sessionsCleanupCommand", () => {
       previewResults: [],
       appliedSummaries: [],
     });
-    mocks.enforceSessionDiskBudget.mockResolvedValue({
-      totalBytesBefore: 1000,
-      totalBytesAfter: 700,
-      removedFiles: 1,
-      removedEntries: 1,
-      freedBytes: 300,
-      maxBytes: 900,
-      highWaterBytes: 700,
-      overBudget: true,
-    });
   });
 
   it("emits a single JSON object for non-dry runs and applies maintenance", async () => {
@@ -192,16 +173,6 @@ describe("sessionsCleanupCommand", () => {
           dmScopeRetired: 0,
           pruned: 0,
           capped: 2,
-          diskBudget: {
-            totalBytesBefore: 1200,
-            totalBytesAfter: 800,
-            removedFiles: 0,
-            removedEntries: 0,
-            freedBytes: 400,
-            maxBytes: 1000,
-            highWaterBytes: 800,
-            overBudget: true,
-          },
           wouldMutate: true,
           applied: true,
           appliedCount: 1,
@@ -227,17 +198,16 @@ describe("sessionsCleanupCommand", () => {
     expect(payload.appliedCount).toBe(1);
     expect(payload.pruned).toBe(0);
     expect(payload.capped).toBe(2);
-    const diskBudget = payload.diskBudget as Record<string, unknown>;
-    expect(diskBudget.removedFiles).toBe(0);
-    expect(diskBudget.removedEntries).toBe(0);
-    expect(mocks.runSessionsCleanup).toHaveBeenCalledOnce();
-    const cleanupCall = mocks.runSessionsCleanup.mock.calls[0]?.[0];
-    expect(cleanupCall?.cfg).toEqual({ session: { store: "/cfg/sessions.json" } });
-    expect(cleanupCall?.opts.enforce).toBe(true);
-    expect(cleanupCall?.opts.activeKey).toBe("agent:main:main");
-    expect(cleanupCall?.targets).toEqual([
-      { agentId: "main", storePath: "/resolved/sessions.json" },
-    ]);
+    expect(mocks.runSessionsCleanup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cfg: { session: { store: "/cfg/sessions.json" } },
+        opts: expect.objectContaining({
+          enforce: true,
+          activeKey: "agent:main:main",
+        }),
+        targets: [{ agentId: "main", storePath: "/resolved/sessions.json" }],
+      }),
+    );
   });
 
   it("delegates non-store enforcing cleanup through the Gateway writer when reachable", async () => {
@@ -252,7 +222,6 @@ describe("sessionsCleanupCommand", () => {
       dmScopeRetired: 0,
       pruned: 2,
       capped: 0,
-      diskBudget: null,
       wouldMutate: true,
       applied: true,
       appliedCount: 1,
@@ -292,24 +261,12 @@ describe("sessionsCleanupCommand", () => {
             dmScopeRetired: 0,
             pruned: 1,
             capped: 0,
-            diskBudget: {
-              totalBytesBefore: 1000,
-              totalBytesAfter: 700,
-              removedFiles: 1,
-              removedEntries: 1,
-              freedBytes: 300,
-              maxBytes: 900,
-              highWaterBytes: 700,
-              overBudget: true,
-            },
             wouldMutate: true,
           },
           beforeStore: {},
           missingKeys: new Set<string>(),
           staleKeys: new Set<string>(),
           cappedKeys: new Set<string>(),
-          budgetEvictedKeys: new Set<string>(),
-          dmScopeRetiredKeys: new Set<string>(),
         },
       ],
       appliedSummaries: [],
@@ -330,13 +287,9 @@ describe("sessionsCleanupCommand", () => {
     expect(payload.applied).toBeUndefined();
     expect(mocks.runSessionsCleanup).toHaveBeenCalled();
     expect(mocks.updateSessionStore).not.toHaveBeenCalled();
-    const diskBudget = payload.diskBudget as Record<string, unknown>;
-    expect(diskBudget.removedFiles).toBe(1);
-    expect(diskBudget.removedEntries).toBe(1);
   });
 
   it("counts missing transcript entries when --fix-missing is enabled in dry-run", async () => {
-    mocks.enforceSessionDiskBudget.mockResolvedValue(null);
     mocks.runSessionsCleanup.mockResolvedValue({
       mode: "warn",
       previewResults: [
@@ -352,15 +305,12 @@ describe("sessionsCleanupCommand", () => {
             dmScopeRetired: 0,
             pruned: 0,
             capped: 0,
-            diskBudget: null,
             wouldMutate: true,
           },
           beforeStore: {},
           missingKeys: new Set(["missing"]),
           staleKeys: new Set<string>(),
           cappedKeys: new Set<string>(),
-          budgetEvictedKeys: new Set<string>(),
-          dmScopeRetiredKeys: new Set<string>(),
         },
       ],
       appliedSummaries: [],
@@ -384,7 +334,6 @@ describe("sessionsCleanupCommand", () => {
   });
 
   it("renders a dry-run action table with keep/prune actions", async () => {
-    mocks.enforceSessionDiskBudget.mockResolvedValue(null);
     mocks.runSessionsCleanup.mockResolvedValue({
       mode: "warn",
       previewResults: [
@@ -400,13 +349,6 @@ describe("sessionsCleanupCommand", () => {
             dmScopeRetired: 0,
             pruned: 1,
             capped: 0,
-            unreferencedArtifacts: {
-              scannedFiles: 5,
-              removedFiles: 2,
-              freedBytes: 128,
-              olderThanMs: 604800000,
-            },
-            diskBudget: null,
             wouldMutate: true,
           },
           beforeStore: {
@@ -416,8 +358,6 @@ describe("sessionsCleanupCommand", () => {
           missingKeys: new Set<string>(),
           staleKeys: new Set(["stale"]),
           cappedKeys: new Set<string>(),
-          budgetEvictedKeys: new Set<string>(),
-          dmScopeRetiredKeys: new Set<string>(),
         },
       ],
       appliedSummaries: [],
@@ -432,7 +372,6 @@ describe("sessionsCleanupCommand", () => {
     );
 
     expectLogsToInclude(logs, "Planned session actions:");
-    expectLogsToInclude(logs, "Would prune unreferenced artifacts: 2");
     const tableHeaderLines = logs.filter((line) => line.includes("Action") && line.includes("Key"));
     expect(tableHeaderLines.length).toBeGreaterThan(0);
     const freshKeepLines = logs.filter((line) => line.includes("fresh") && line.includes("keep"));
@@ -448,7 +387,6 @@ describe("sessionsCleanupCommand", () => {
       { agentId: "main", storePath: "/resolved/main-sessions.json" },
       { agentId: "work", storePath: "/resolved/work-sessions.json" },
     ]);
-    mocks.enforceSessionDiskBudget.mockResolvedValue(null);
     mocks.runSessionsCleanup.mockResolvedValue({
       mode: "warn",
       previewResults: [
@@ -464,15 +402,12 @@ describe("sessionsCleanupCommand", () => {
             dmScopeRetired: 0,
             pruned: 1,
             capped: 0,
-            diskBudget: null,
             wouldMutate: true,
           },
           beforeStore: {},
           missingKeys: new Set<string>(),
           staleKeys: new Set(["stale"]),
           cappedKeys: new Set<string>(),
-          budgetEvictedKeys: new Set<string>(),
-          dmScopeRetiredKeys: new Set<string>(),
         },
         {
           summary: {
@@ -486,15 +421,12 @@ describe("sessionsCleanupCommand", () => {
             dmScopeRetired: 0,
             pruned: 1,
             capped: 0,
-            diskBudget: null,
             wouldMutate: true,
           },
           beforeStore: {},
           missingKeys: new Set<string>(),
           staleKeys: new Set(["stale"]),
           cappedKeys: new Set<string>(),
-          budgetEvictedKeys: new Set<string>(),
-          dmScopeRetiredKeys: new Set<string>(),
         },
       ],
       appliedSummaries: [],
