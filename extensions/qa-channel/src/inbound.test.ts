@@ -77,12 +77,9 @@ describe("handleQaInbound", () => {
       }),
     );
 
-    expect(runtime.channel.turn.runAssembled).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(runtime.channel.turn.runAssembled).mock.calls[0]?.[0].replyPipeline).toEqual(
-      {},
-    );
+    expect(runtime.channel.session.recordInboundSession).toHaveBeenCalledTimes(1);
     expect(
-      vi.mocked(runtime.channel.turn.runAssembled).mock.calls[0]?.[0].ctxPayload.WasMentioned,
+      vi.mocked(runtime.channel.session.recordInboundSession).mock.calls[0]?.[0].ctx.WasMentioned,
     ).toBe(true);
   });
 
@@ -98,7 +95,7 @@ describe("handleQaInbound", () => {
       }),
     );
 
-    expect(runtime.channel.turn.runAssembled).not.toHaveBeenCalled();
+    expect(runtime.channel.session.recordInboundSession).not.toHaveBeenCalled();
   });
 
   it("allows direct messages from configured senders", async () => {
@@ -113,9 +110,9 @@ describe("handleQaInbound", () => {
       }),
     );
 
-    expect(runtime.channel.turn.runAssembled).toHaveBeenCalledTimes(1);
+    expect(runtime.channel.session.recordInboundSession).toHaveBeenCalledTimes(1);
     expect(
-      vi.mocked(runtime.channel.turn.runAssembled).mock.calls[0]?.[0].ctxPayload,
+      vi.mocked(runtime.channel.session.recordInboundSession).mock.calls[0]?.[0].ctx,
     ).toMatchObject({
       CommandAuthorized: true,
       SenderId: "alice",
@@ -142,7 +139,7 @@ describe("handleQaInbound", () => {
       }),
     );
 
-    expect(runtime.channel.turn.runAssembled).toHaveBeenCalledTimes(1);
+    expect(runtime.channel.session.recordInboundSession).toHaveBeenCalledTimes(1);
   });
 
   it("skips configured group messages that miss mention activation", async () => {
@@ -170,6 +167,6 @@ describe("handleQaInbound", () => {
       }),
     );
 
-    expect(runtime.channel.turn.runAssembled).not.toHaveBeenCalled();
+    expect(runtime.channel.session.recordInboundSession).not.toHaveBeenCalled();
   });
 });

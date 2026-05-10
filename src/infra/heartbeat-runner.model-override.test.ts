@@ -45,7 +45,6 @@ async function withHeartbeatFixture(
         await seedHeartbeatSession(agentId, sessionKey, {
           updatedAt: input.updatedAt,
           lastChannel: input.lastChannel,
-          lastProvider: input.lastChannel,
           lastTo: input.lastTo,
         });
       };

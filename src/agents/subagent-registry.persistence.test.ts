@@ -121,7 +121,6 @@ describe("subagent registry persistence", () => {
   ) => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
     process.env.OPENCLAW_STATE_DIR = tempStateDir;
-    const registryPath = path.join(tempStateDir, "subagents", "runs.json");
     if (opts?.seedChildSessions !== false) {
       await seedChildSessionsForPersistedRuns(persisted);
     }
@@ -132,13 +131,9 @@ describe("subagent registry persistence", () => {
         isLegacy: persisted.version === 1,
       }),
     );
-    return registryPath;
   };
 
-  const readPersistedRun = async <T>(
-    _registryPath: string,
-    runId: string,
-  ): Promise<T | undefined> => {
+  const readPersistedRun = async <T>(runId: string): Promise<T | undefined> => {
     return loadSubagentRegistryFromState().get(runId) as T | undefined;
   };
 
@@ -314,7 +309,7 @@ describe("subagent registry persistence", () => {
         },
       },
     };
-    const registryPath = await writePersistedRegistry(persisted);
+    await writePersistedRegistry(persisted);
 
     const runs = loadSubagentRegistryFromState();
     const entry = runs.get("run-legacy");
@@ -323,17 +318,15 @@ describe("subagent registry persistence", () => {
     expect(entry?.requesterOrigin?.channel).toBe("whatsapp");
     expect(entry?.requesterOrigin?.accountId).toBe("legacy-account");
 
-    await expect(fs.access(registryPath)).rejects.toMatchObject({ code: "ENOENT" });
     expect(loadSubagentRegistryFromState().get("run-legacy")).toMatchObject({
       cleanupHandled: true,
       cleanupCompletedAt: 9,
     });
   });
 
-  it("restores persisted runs from SQLite without legacy JSON", async () => {
+  it("restores persisted runs from SQLite", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
     process.env.OPENCLAW_STATE_DIR = tempStateDir;
-    const registryPath = path.join(tempStateDir, "subagents", "runs.json");
     const record: SubagentRunRecord = {
       runId: "run-sqlite",
       childSessionKey: "agent:main:subagent:sqlite",
@@ -348,7 +341,6 @@ describe("subagent registry persistence", () => {
     };
 
     saveSubagentRegistryToState(new Map([[record.runId, record]]));
-    await expect(fs.access(registryPath)).rejects.toMatchObject({ code: "ENOENT" });
 
     expect(loadSubagentRegistryFromState().get("run-sqlite")).toMatchObject({
       runId: "run-sqlite",
@@ -359,7 +351,7 @@ describe("subagent registry persistence", () => {
   });
 
   it("returns isolated clones for unchanged persisted registry snapshots", async () => {
-    const registryPath = await writePersistedRegistry(
+    await writePersistedRegistry(
       {
         version: 2,
         runs: {
@@ -400,7 +392,6 @@ describe("subagent registry persistence", () => {
     expect(second.get("run-cached")?.endedAt).toBeUndefined();
     expect(second.get("run-cached")?.cleanupHandled).toBeUndefined();
 
-    await expect(fs.access(registryPath)).rejects.toMatchObject({ code: "ENOENT" });
     saveSubagentRegistryToState(
       new Map([
         [
@@ -420,17 +411,6 @@ describe("subagent registry persistence", () => {
     );
 
     expect(loadSubagentRegistryFromState().has("run-updated")).toBe(true);
-  });
-
-  it("returns empty maps for unchanged invalid persisted registry snapshots", async () => {
-    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
-    process.env.OPENCLAW_STATE_DIR = tempStateDir;
-    const registryPath = path.join(tempStateDir, "subagents", "runs.json");
-    await fs.mkdir(path.dirname(registryPath), { recursive: true });
-    await fs.writeFile(registryPath, "{invalid", "utf8");
-
-    expect(loadSubagentRegistryFromState()).toEqual(new Map());
-    expect(loadSubagentRegistryFromState()).toEqual(new Map());
   });
 
   it("normalizes persisted and newly registered session keys to canonical trimmed values", async () => {
@@ -507,7 +487,7 @@ describe("subagent registry persistence", () => {
       task: "retry announce",
       cleanup: "keep",
     });
-    const registryPath = await writePersistedRegistry(persisted);
+    await writePersistedRegistry(persisted);
 
     announceSpy.mockResolvedValueOnce(false);
     restartRegistry();
@@ -515,7 +495,7 @@ describe("subagent registry persistence", () => {
       const afterFirst = await readPersistedRun<{
         cleanupHandled?: boolean;
         cleanupCompletedAt?: number;
-      }>(registryPath, "run-3");
+      }>("run-3");
       return (
         announceSpy.mock.calls.length === 1 &&
         afterFirst?.cleanupHandled === false &&
@@ -527,7 +507,7 @@ describe("subagent registry persistence", () => {
     const afterFirst = await readPersistedRun<{
       cleanupHandled?: boolean;
       cleanupCompletedAt?: number;
-    }>(registryPath, "run-3");
+    }>("run-3");
     expect(afterFirst?.cleanupHandled).toBe(false);
     expect(afterFirst?.cleanupCompletedAt).toBeUndefined();
 
@@ -537,15 +517,12 @@ describe("subagent registry persistence", () => {
     await waitForRegistryWork(async () => {
       const afterSecond = await readPersistedRun<{
         cleanupCompletedAt?: number;
-      }>(registryPath, "run-3");
+      }>("run-3");
       return announceSpy.mock.calls.length === 2 && afterSecond?.cleanupCompletedAt != null;
     });
 
     expect(announceSpy).toHaveBeenCalledTimes(2);
-    const afterSecond = await readPersistedRun<{ cleanupCompletedAt?: number }>(
-      registryPath,
-      "run-3",
-    );
+    const afterSecond = await readPersistedRun<{ cleanupCompletedAt?: number }>("run-3");
     expect(afterSecond?.cleanupCompletedAt).toBeGreaterThanOrEqual(beforeRetry);
   });
 
@@ -556,7 +533,7 @@ describe("subagent registry persistence", () => {
       task: "reject announce",
       cleanup: "keep",
     });
-    const registryPath = await writePersistedRegistry(persisted);
+    await writePersistedRegistry(persisted);
 
     announceSpy.mockRejectedValueOnce(new Error("announce boom"));
     restartRegistry();
@@ -564,7 +541,7 @@ describe("subagent registry persistence", () => {
       const afterFirst = await readPersistedRun<{
         cleanupHandled?: boolean;
         cleanupCompletedAt?: number;
-      }>(registryPath, "run-reject");
+      }>("run-reject");
       return (
         announceSpy.mock.calls.length === 1 &&
         afterFirst?.cleanupHandled === false &&
@@ -576,7 +553,7 @@ describe("subagent registry persistence", () => {
     const afterFirst = await readPersistedRun<{
       cleanupHandled?: boolean;
       cleanupCompletedAt?: number;
-    }>(registryPath, "run-reject");
+    }>("run-reject");
     expect(afterFirst?.cleanupHandled).toBe(false);
     expect(afterFirst?.cleanupCompletedAt).toBeUndefined();
 
@@ -586,15 +563,12 @@ describe("subagent registry persistence", () => {
     await waitForRegistryWork(async () => {
       const afterSecond = await readPersistedRun<{
         cleanupCompletedAt?: number;
-      }>(registryPath, "run-reject");
+      }>("run-reject");
       return announceSpy.mock.calls.length === 2 && afterSecond?.cleanupCompletedAt != null;
     });
 
     expect(announceSpy).toHaveBeenCalledTimes(2);
-    const afterSecond = await readPersistedRun<{ cleanupCompletedAt?: number }>(
-      registryPath,
-      "run-reject",
-    );
+    const afterSecond = await readPersistedRun<{ cleanupCompletedAt?: number }>("run-reject");
     expect(afterSecond?.cleanupCompletedAt).toBeGreaterThanOrEqual(beforeRetry);
   });
 
@@ -605,31 +579,28 @@ describe("subagent registry persistence", () => {
       task: "deferred announce",
       cleanup: "delete",
     });
-    const registryPath = await writePersistedRegistry(persisted);
+    await writePersistedRegistry(persisted);
 
     announceSpy.mockResolvedValueOnce(false);
     restartRegistry();
     await waitForRegistryWork(async () => {
-      const afterFirst = await readPersistedRun<{ cleanupHandled?: boolean }>(
-        registryPath,
-        "run-4",
-      );
+      const afterFirst = await readPersistedRun<{ cleanupHandled?: boolean }>("run-4");
       return announceSpy.mock.calls.length === 1 && afterFirst?.cleanupHandled === false;
     });
 
     expect(announceSpy).toHaveBeenCalledTimes(1);
-    const afterFirst = await readPersistedRun<{ cleanupHandled?: boolean }>(registryPath, "run-4");
+    const afterFirst = await readPersistedRun<{ cleanupHandled?: boolean }>("run-4");
     expect(afterFirst?.cleanupHandled).toBe(false);
 
     announceSpy.mockResolvedValueOnce(true);
     restartRegistry();
     await waitForRegistryWork(async () => {
-      const afterSecond = await readPersistedRun(registryPath, "run-4");
+      const afterSecond = await readPersistedRun("run-4");
       return announceSpy.mock.calls.length === 2 && afterSecond === undefined;
     });
 
     expect(announceSpy).toHaveBeenCalledTimes(2);
-    await expect(readPersistedRun(registryPath, "run-4")).resolves.toBeUndefined();
+    await expect(readPersistedRun("run-4")).resolves.toBeUndefined();
   });
 
   it("reconciles orphaned restored runs by pruning them from registry", async () => {
@@ -639,17 +610,17 @@ describe("subagent registry persistence", () => {
       task: "orphan restore",
       cleanup: "keep",
     });
-    const registryPath = await writePersistedRegistry(persisted, {
+    await writePersistedRegistry(persisted, {
       seedChildSessions: false,
     });
 
     restartRegistry();
     await waitForRegistryWork(async () => {
-      return (await readPersistedRun(registryPath, "run-orphan-restore")) === undefined;
+      return (await readPersistedRun("run-orphan-restore")) === undefined;
     });
 
     expect(announceSpy).not.toHaveBeenCalled();
-    await expect(readPersistedRun(registryPath, "run-orphan-restore")).resolves.toBeUndefined();
+    await expect(readPersistedRun("run-orphan-restore")).resolves.toBeUndefined();
     expect(listSubagentRunsForRequester("agent:main:main")).toHaveLength(0);
   });
 
@@ -657,7 +628,7 @@ describe("subagent registry persistence", () => {
     const now = Date.now();
     const runId = "run-stale-unended-restore";
     const childSessionKey = "agent:main:subagent:stale-unended-restore";
-    const registryPath = await writePersistedRegistry({
+    await writePersistedRegistry({
       version: 2,
       runs: {
         [runId]: {
@@ -675,7 +646,7 @@ describe("subagent registry persistence", () => {
 
     restartRegistry();
     await waitForRegistryWork(async () => {
-      return (await readPersistedRun(registryPath, runId)) === undefined;
+      return (await readPersistedRun(runId)) === undefined;
     });
 
     expect(callGateway).not.toHaveBeenCalled();

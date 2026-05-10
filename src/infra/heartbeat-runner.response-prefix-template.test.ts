@@ -60,7 +60,6 @@ describe("runHeartbeatOnce responsePrefix templates", () => {
       });
       await seedMainHeartbeatSession(agentId, cfg, {
         lastChannel: "telegram",
-        lastProvider: "telegram",
         lastTo: TELEGRAM_GROUP,
       });
 

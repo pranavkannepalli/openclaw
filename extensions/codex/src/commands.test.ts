@@ -845,7 +845,7 @@ describe("codex command", () => {
         ...expectedDiagnosticsTargetBlock({
           channel: "test",
           sessionKey: "agent:main:session-1",
-          sessionId: "session-1",
+          sessionId,
           threadId: "thread-123",
         }),
         "Note: tool loop repro",
@@ -887,7 +887,7 @@ describe("codex command", () => {
         ...expectedDiagnosticsTargetBlock({
           channel: "test",
           sessionKey: "agent:main:session-1",
-          sessionId: "session-1",
+          sessionId,
           threadId: "thread-123",
         }),
         "Included Codex logs and spawned Codex subthreads when available.",
@@ -1025,7 +1025,7 @@ describe("codex command", () => {
         ...expectedDiagnosticsTargetBlock({
           channel: "test",
           sessionKey: "agent:main:telegram:approved",
-          sessionId: "session-approved",
+          sessionId,
           threadId: "thread-approved",
         }),
         "Included Codex logs and spawned Codex subthreads when available.",
@@ -1374,6 +1374,7 @@ describe("codex command", () => {
         ...expectedDiagnosticsTargetBlock({
           channel: "test",
           sessionKey: "group-session",
+          sessionId: "session",
           threadId: "thread-private",
         }),
         "Included Codex logs and spawned Codex subthreads when available.",
@@ -1431,6 +1432,7 @@ describe("codex command", () => {
         "Codex sessions:",
         ...expectedDiagnosticsTargetBlock({
           channel: "test",
+          sessionId: "session",
           threadId: "thread-confirm-scope",
         }),
       ].join("\n"),
@@ -1506,6 +1508,7 @@ describe("codex command", () => {
         "Codex diagnostics sent to OpenAI servers:",
         ...expectedDiagnosticsTargetBlock({
           channel: "test",
+          sessionId: "session",
           threadId: "thread-cooldown",
         }),
         "Included Codex logs and spawned Codex subthreads when available.",
@@ -1543,6 +1546,7 @@ describe("codex command", () => {
         "Codex diagnostics sent to OpenAI servers:",
         ...expectedDiagnosticsTargetBlock({
           channel: "test",
+          sessionId,
           threadId: "thread-global-1",
         }),
         "Included Codex logs and spawned Codex subthreads when available.",
@@ -1758,7 +1762,7 @@ describe("codex command", () => {
     ).resolves.toEqual({
       text: [
         "Could not send Codex diagnostics:",
-        "- channel test, Codex thread &lt;\uff20U123&gt;: bad??? &lt;\uff20U123&gt; \uff3btrusted\uff3d\uff08https://evil\uff09 \uff20here",
+        "- channel test, OpenClaw session session, Codex thread &lt;\uff20U123&gt;: bad??? &lt;\uff20U123&gt; \uff3btrusted\uff3d\uff08https://evil\uff09 \uff20here",
         "Inspect locally:",
         "- run codex resume and paste the thread id shown above",
       ].join("\n"),
@@ -1789,7 +1793,7 @@ describe("codex command", () => {
     ).resolves.toEqual({
       text: [
         "Could not send Codex diagnostics:",
-        "- channel test, Codex thread thread-retry: temporary outage",
+        "- channel test, OpenClaw session session, Codex thread thread-retry: temporary outage",
         "Inspect locally:",
         "- `codex resume thread-retry`",
       ].join("\n"),
@@ -1808,6 +1812,7 @@ describe("codex command", () => {
         "Codex diagnostics sent to OpenAI servers:",
         ...expectedDiagnosticsTargetBlock({
           channel: "test",
+          sessionId: "session",
           threadId: "thread-retry",
         }),
         "Included Codex logs and spawned Codex subthreads when available.",
@@ -1838,6 +1843,7 @@ describe("codex command", () => {
         "Codex diagnostics sent to OpenAI servers:",
         "Session 1",
         "Channel: test",
+        "OpenClaw session id: `session`",
         "Codex thread id: thread-123'\uff40???; echo bad",
         "Inspect locally: run codex resume and paste the thread id shown above",
         "Included Codex logs and spawned Codex subthreads when available.",

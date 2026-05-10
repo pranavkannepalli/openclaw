@@ -14,8 +14,6 @@ import {
   setupAuthTestEnv,
 } from "./test-wizard-helpers.js";
 
-const legacyAuthProfilePathFor = (dir: string) => path.join(dir, "auth-profiles.json");
-
 const providerEnvVarsById = vi.hoisted(
   (): Record<string, readonly string[]> => ({
     "cloudflare-ai-gateway": ["CLOUDFLARE_AI_GATEWAY_API_KEY"],
@@ -95,13 +93,6 @@ describe("writeOAuthCredentials", () => {
       access: "access-token",
       type: "oauth",
     });
-
-    await expect(fs.readFile(legacyAuthProfilePathFor(env.agentDir), "utf8")).rejects.toMatchObject(
-      { code: "ENOENT" },
-    );
-    await expect(
-      fs.readFile(legacyAuthProfilePathFor(defaultAgentDir), "utf8"),
-    ).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("writes OAuth credentials to all sibling agent dirs when syncSiblingAgents=true", async () => {
@@ -137,9 +128,6 @@ describe("writeOAuthCredentials", () => {
         access: "access-sync",
         type: "oauth",
       });
-      await expect(fs.readFile(legacyAuthProfilePathFor(dir), "utf8")).rejects.toMatchObject({
-        code: "ENOENT",
-      });
     }
   });
 
@@ -173,14 +161,6 @@ describe("writeOAuthCredentials", () => {
 
     await expect(readAuthProfilesForAgent(mainAgentDir)).rejects.toThrow(
       "Expected SQLite auth profile store",
-    );
-    await expect(fs.readFile(legacyAuthProfilePathFor(kidAgentDir), "utf8")).rejects.toMatchObject({
-      code: "ENOENT",
-    });
-    await expect(fs.readFile(legacyAuthProfilePathFor(mainAgentDir), "utf8")).rejects.toMatchObject(
-      {
-        code: "ENOENT",
-      },
     );
   });
 
@@ -217,9 +197,6 @@ describe("writeOAuthCredentials", () => {
         access: "access-ext",
         type: "oauth",
       });
-      await expect(fs.readFile(legacyAuthProfilePathFor(dir), "utf8")).rejects.toMatchObject({
-        code: "ENOENT",
-      });
     }
 
     // Global state dir should NOT have credentials written
@@ -227,9 +204,6 @@ describe("writeOAuthCredentials", () => {
     await expect(readAuthProfilesForAgent(globalMain)).rejects.toThrow(
       "Expected SQLite auth profile store",
     );
-    await expect(fs.readFile(legacyAuthProfilePathFor(globalMain), "utf8")).rejects.toMatchObject({
-      code: "ENOENT",
-    });
   });
 });
 
@@ -405,13 +379,6 @@ describe("upsertApiKeyProfile", () => {
       provider: "minimax",
       key: "sk-minimax-test",
     });
-
-    await expect(fs.readFile(legacyAuthProfilePathFor(env.agentDir), "utf8")).rejects.toMatchObject(
-      { code: "ENOENT" },
-    );
-    await expect(
-      fs.readFile(legacyAuthProfilePathFor(defaultAgentDir), "utf8"),
-    ).rejects.toMatchObject({ code: "ENOENT" });
   });
 });
 

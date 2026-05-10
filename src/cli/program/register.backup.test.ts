@@ -4,6 +4,7 @@ import { registerBackupCommand } from "./register.backup.js";
 
 const mocks = vi.hoisted(() => ({
   backupCreateCommand: vi.fn(),
+  backupRestoreCommand: vi.fn(),
   backupVerifyCommand: vi.fn(),
   runtime: {
     log: vi.fn(),
@@ -13,11 +14,16 @@ const mocks = vi.hoisted(() => ({
 }));
 
 const backupCreateCommand = mocks.backupCreateCommand;
+const backupRestoreCommand = mocks.backupRestoreCommand;
 const backupVerifyCommand = mocks.backupVerifyCommand;
 const runtime = mocks.runtime;
 
 vi.mock("../../commands/backup.js", () => ({
   backupCreateCommand: mocks.backupCreateCommand,
+}));
+
+vi.mock("../../commands/backup-restore.js", () => ({
+  backupRestoreCommand: mocks.backupRestoreCommand,
 }));
 
 vi.mock("../../commands/backup-verify.js", () => ({
@@ -38,6 +44,7 @@ describe("registerBackupCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     backupCreateCommand.mockResolvedValue(undefined);
+    backupRestoreCommand.mockResolvedValue(undefined);
     backupVerifyCommand.mockResolvedValue(undefined);
   });
 
@@ -50,7 +57,7 @@ describe("registerBackupCommand", () => {
         output: "/tmp/backups",
         json: true,
         dryRun: true,
-        verify: false,
+        verify: true,
         onlyConfig: false,
         includeWorkspace: true,
       }),
@@ -68,13 +75,13 @@ describe("registerBackupCommand", () => {
     );
   });
 
-  it("forwards --verify to backup create", async () => {
-    await runCli(["backup", "create", "--verify"]);
+  it("honors --no-verify", async () => {
+    await runCli(["backup", "create", "--no-verify"]);
 
     expect(backupCreateCommand).toHaveBeenCalledWith(
       runtime,
       expect.objectContaining({
-        verify: true,
+        verify: false,
       }),
     );
   });
@@ -97,6 +104,20 @@ describe("registerBackupCommand", () => {
       runtime,
       expect.objectContaining({
         archive: "/tmp/openclaw-backup.tar.gz",
+        json: true,
+      }),
+    );
+  });
+
+  it("runs backup restore with forwarded options", async () => {
+    await runCli(["backup", "restore", "/tmp/openclaw-backup.tar.gz", "--dry-run", "--json"]);
+
+    expect(backupRestoreCommand).toHaveBeenCalledWith(
+      runtime,
+      expect.objectContaining({
+        archive: "/tmp/openclaw-backup.tar.gz",
+        dryRun: true,
+        yes: false,
         json: true,
       }),
     );

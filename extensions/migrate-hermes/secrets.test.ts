@@ -87,12 +87,6 @@ describe("Hermes migration secret items", () => {
       provider: "openai",
       key: "sk-hermes",
     });
-    await expect(
-      fs.access(path.join(stateDir, "agents", "custom", "agent", "auth-profiles.json")),
-    ).rejects.toMatchObject({ code: "ENOENT" });
-    await expect(fs.access(path.join(customAgentDir, "auth-profiles.json"))).rejects.toMatchObject({
-      code: "ENOENT",
-    });
   });
 
   it("keeps secret conflict checks read-only during planning", async () => {
@@ -113,9 +107,6 @@ describe("Hermes migration secret items", () => {
     await provider.plan(makeContext({ source, stateDir, workspaceDir, includeSecrets: true }));
 
     await expect(fs.access(path.join(agentDir, "auth.json"))).resolves.toBeUndefined();
-    await expect(fs.access(path.join(agentDir, "auth-profiles.json"))).rejects.toMatchObject({
-      code: "ENOENT",
-    });
   });
 
   it("reports late-created auth profiles as conflicts without overwriting", async () => {
@@ -164,6 +155,6 @@ describe("Hermes migration secret items", () => {
     const authStore = loadAuthProfileStoreWithoutExternalProfiles(agentDir, {
       env: stateEnv(stateDir),
     });
-    expect(authStore.profiles?.["openai:hermes-import"]?.key).toBe("sk-late");
+    expect(authStore.profiles?.["openai:hermes-import"]).toMatchObject({ key: "sk-late" });
   });
 });

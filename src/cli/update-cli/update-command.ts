@@ -3,10 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { confirm, isCancel } from "@clack/prompts";
-import {
-  checkShellCompletionStatus,
-  ensureCompletionCacheExists,
-} from "../../commands/doctor-completion.js";
+import { checkShellCompletionStatus } from "../../commands/doctor-completion.js";
 import { doctorCommand } from "../../commands/doctor.js";
 import {
   ConfigMutationConflictError,
@@ -105,7 +102,6 @@ import {
   resolveTargetVersion,
   resolveUpdateRoot,
   runUpdateStep,
-  tryWriteCompletionCache,
   type UpdateCommandOptions,
 } from "./shared.js";
 import { suppressDeprecations } from "./suppress-deprecations.js";
@@ -861,18 +857,11 @@ async function tryInstallShellCompletion(opts: {
 
   const status = await checkShellCompletionStatus(CLI_NAME);
 
-  if (status.usesSlowPattern) {
-    defaultRuntime.log(theme.muted("Upgrading shell completion to cached version..."));
-    const cacheGenerated = await ensureCompletionCacheExists(CLI_NAME);
-    if (cacheGenerated) {
-      await installCompletion(status.shell, true, CLI_NAME);
-    }
-    return;
-  }
-
-  if (status.profileInstalled && !status.cacheExists) {
-    defaultRuntime.log(theme.muted("Regenerating shell completion cache..."));
-    await ensureCompletionCacheExists(CLI_NAME);
+  if (status.usesRetiredCache) {
+    defaultRuntime.log(theme.muted("Updating shell completion profile..."));
+    await installCompletion(status.shell, true, CLI_NAME, {
+      retiredCachePath: status.retiredCachePath,
+    });
     return;
   }
 
@@ -893,12 +882,6 @@ async function tryInstallShellCompletion(opts: {
           ),
         );
       }
-      return;
-    }
-
-    const cacheGenerated = await ensureCompletionCacheExists(CLI_NAME);
-    if (!cacheGenerated) {
-      defaultRuntime.log(theme.warn("Failed to generate completion cache."));
       return;
     }
 
@@ -1742,23 +1725,6 @@ function createUpdatedChannelSnapshot(
   };
 }
 
-async function maybeRepairLegacyConfigForUpdateChannel(params: {
-  configSnapshot: Awaited<ReturnType<typeof readConfigFileSnapshot>>;
-  jsonMode: boolean;
-}): Promise<Awaited<ReturnType<typeof readConfigFileSnapshot>>> {
-  if (params.configSnapshot.valid || params.configSnapshot.legacyIssues.length === 0) {
-    return params.configSnapshot;
-  }
-
-  const { repairLegacyConfigForUpdateChannel } =
-    await import("../../commands/doctor/legacy-config-repair.js");
-  const { snapshot, repaired } = await repairLegacyConfigForUpdateChannel(params);
-  if (!params.jsonMode && repaired) {
-    defaultRuntime.log(theme.muted("Migrated legacy config before changing update channel."));
-  }
-  return snapshot;
-}
-
 async function writePostCorePluginUpdateResultFile(
   filePath: string | undefined,
   result: PostCorePluginUpdateResult,
@@ -2079,12 +2045,6 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
   }
 
   let configSnapshot = await readConfigFileSnapshot();
-  if (opts.channel && !opts.dryRun && !configSnapshot.valid) {
-    configSnapshot = await maybeRepairLegacyConfigForUpdateChannel({
-      configSnapshot,
-      jsonMode: Boolean(opts.json),
-    });
-  }
   const storedChannel = configSnapshot.valid
     ? normalizeUpdateChannel(configSnapshot.config.update?.channel)
     : null;
@@ -2178,7 +2138,7 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
       actions.push(`Run global package manager update with spec ${packageInstallSpec ?? tag}`);
     }
     actions.push("Run plugin update sync after core update");
-    actions.push("Refresh shell completion cache (if needed)");
+    actions.push("Refresh shell completion profile (if needed)");
     actions.push(
       shouldRestart
         ? "Restart gateway service and run doctor checks"
@@ -2517,7 +2477,6 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     }
   }
 
-  await tryWriteCompletionCache(postUpdateRoot, Boolean(opts.json));
   await tryInstallShellCompletion({
     jsonMode: Boolean(opts.json),
     skipPrompt: Boolean(opts.yes),

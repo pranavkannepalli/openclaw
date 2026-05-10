@@ -455,6 +455,7 @@ describe("scripts/changed-lanes", () => {
       "typecheck core tests",
       "lint core",
       "lint scripts",
+      "Kysely/SQLite guardrails",
       "live Docker shell syntax",
       "live Docker scheduler dry run",
     ]);

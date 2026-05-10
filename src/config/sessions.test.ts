@@ -590,7 +590,6 @@ describe("sessions", () => {
     expect(entry.channel).toBe("slack");
     expect(entry.provider).toBeUndefined();
     expect(entry.lastChannel).toBe("telegram");
-    expect(entry.lastProvider).toBeUndefined();
   });
 
   it("patchSessionEntry merges concurrent patches", async () => {

@@ -8,38 +8,6 @@ import { resolveSessionKeyFromResolveParams } from "./sessions-resolve.js";
 describe("resolveSessionKeyFromResolveParams store canonicalization", () => {
   const freshUpdatedAt = () => Date.now();
 
-  it("resolves legacy main-alias matches by sessionId and label for the configured default agent", async () => {
-    await withStateDirEnv("openclaw-sessions-resolve-alias-", async () => {
-      const cfg = {
-        session: { mainKey: "main" },
-        agents: { list: [{ id: "ops", default: true }] },
-      } satisfies OpenClawConfig;
-      upsertSessionEntry({
-        agentId: "ops",
-        sessionKey: "agent:main:main",
-        entry: {
-          sessionId: "sess-default-alias",
-          label: "default-alias",
-          updatedAt: freshUpdatedAt(),
-        },
-      });
-
-      await expect(
-        resolveSessionKeyFromResolveParams({
-          cfg,
-          p: { sessionId: "sess-default-alias" },
-        }),
-      ).resolves.toEqual({ ok: true, key: "agent:ops:main" });
-
-      await expect(
-        resolveSessionKeyFromResolveParams({
-          cfg,
-          p: { label: "default-alias" },
-        }),
-      ).resolves.toEqual({ ok: true, key: "agent:ops:main" });
-    });
-  });
-
   it("still rejects non-alias agent:main matches when main is no longer configured", async () => {
     await withStateDirEnv("openclaw-sessions-resolve-stale-main-", async () => {
       const cfg = {

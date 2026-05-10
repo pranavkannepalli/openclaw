@@ -258,7 +258,7 @@ describe("agentCliCommand", () => {
   });
 
   it("promotes gateway deliveryStatus to the top-level JSON response", async () => {
-    await withTempStore(async () => {
+    await withTempConfig(async () => {
       const deliveryStatus = {
         requested: true,
         attempted: true,

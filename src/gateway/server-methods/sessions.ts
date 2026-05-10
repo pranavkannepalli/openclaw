@@ -90,7 +90,7 @@ import {
   loadGatewaySessionRow,
   loadSessionEntry,
   readRecentSessionMessagesWithStatsAsync,
-  readRecentSessionTranscriptLines,
+  readRecentSessionTranscriptEvents,
   readSessionMessageCountAsync,
   readSessionPreviewItemsFromTranscript,
   resolveDeletedAgentIdFromSessionKey,
@@ -1789,7 +1789,6 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const deleteTranscript = typeof p.deleteTranscript === "boolean" ? p.deleteTranscript : true;
     const {
       cleanupSessionBeforeMutation,
       emitGatewaySessionEndPluginHook,
@@ -1820,7 +1819,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         })
       : false;
 
-    if (deleted && deleteTranscript && sessionId) {
+    if (deleted && sessionId) {
       deleteSqliteSessionTranscript({
         agentId: target.agentId,
         sessionId,
@@ -1842,7 +1841,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       });
     }
 
-    respond(true, { ok: true, key: target.canonicalKey, deleted, archived: [] }, undefined);
+    respond(true, { ok: true, key: target.canonicalKey, deleted }, undefined);
     if (deleted) {
       emitSessionsChanged(context, {
         sessionKey: target.canonicalKey,
@@ -2014,21 +2013,21 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const tail = readRecentSessionTranscriptLines({
+    const tail = readRecentSessionTranscriptEvents({
       sessionId,
       agentId: target.agentId,
-      maxLines,
+      maxEvents: maxLines,
     });
-    const lines = tail?.lines ?? [];
-    const totalLines = tail?.totalLines ?? 0;
-    if (totalLines <= maxLines) {
+    const events = tail?.events ?? [];
+    const totalEvents = tail?.totalEvents ?? 0;
+    if (totalEvents <= maxLines) {
       respond(
         true,
         {
           ok: true,
           key: target.canonicalKey,
           compacted: false,
-          kept: totalLines,
+          kept: totalEvents,
         },
         undefined,
       );
@@ -2038,7 +2037,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
     replaceSqliteSessionTranscriptEvents({
       agentId: target.agentId,
       sessionId,
-      events: lines.map((line) => JSON.parse(line) as unknown),
+      events,
     });
 
     await patchSessionEntry({
@@ -2061,7 +2060,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         ok: true,
         key: target.canonicalKey,
         compacted: true,
-        kept: lines.length,
+        kept: events.length,
       },
       undefined,
     );

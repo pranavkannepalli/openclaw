@@ -324,12 +324,22 @@ function createTestRecoveryKeyPath(prefix: string): string {
   );
 }
 
+function createTestRecoveryKeyRef(recoveryKeyPath: string) {
+  const resolved = path.resolve(recoveryKeyPath);
+  const parts = resolved.split(path.sep);
+  const matrixIndex = parts.lastIndexOf("matrix");
+  return {
+    stateDir: matrixIndex > 0 ? parts.slice(0, matrixIndex).join(path.sep) || path.sep : undefined,
+    storageKey: resolved,
+  };
+}
+
 function writeStoredRecoveryKeyForTest(params: {
   recoveryKeyPath: string;
   encodedPrivateKey?: string;
   privateKeyBytes: Uint8Array;
 }): void {
-  writeMatrixRecoveryKey(params.recoveryKeyPath, {
+  writeMatrixRecoveryKey(createTestRecoveryKeyRef(params.recoveryKeyPath), {
     version: 1,
     createdAt: new Date().toISOString(),
     keyId: "SSSSKEY",
@@ -675,11 +685,10 @@ describe("MatrixClient request hardening", () => {
 
   it("wires the sync store into the SDK and flushes it on shutdown", async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-matrix-sdk-store-"));
-    const storagePath = path.join(tempDir, "bot-storage.json");
 
     try {
       const client = new MatrixClient("https://matrix.example.org", "token", {
-        storagePath,
+        storageRootDir: tempDir,
       });
 
       const store = lastCreateClientOpts?.store as { flush: () => Promise<void> } | undefined;
@@ -1655,7 +1664,7 @@ describe("MatrixClient crypto bootstrapping", () => {
   it("provides secret storage callbacks and resolves stored recovery key", async () => {
     const recoveryKeyPath = createTestRecoveryKeyPath("matrix-sdk-test-");
     const privateKeyBase64 = Buffer.from([1, 2, 3, 4]).toString("base64");
-    writeMatrixRecoveryKey(recoveryKeyPath, {
+    writeMatrixRecoveryKey(createTestRecoveryKeyRef(recoveryKeyPath), {
       version: 1,
       createdAt: new Date().toISOString(),
       keyId: "SSSSKEY",
@@ -1664,7 +1673,7 @@ describe("MatrixClient crypto bootstrapping", () => {
 
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath,
+      recoveryKeyRef: createTestRecoveryKeyRef(recoveryKeyPath),
     });
     expect(client).toBeInstanceOf(MatrixClient);
 
@@ -1721,14 +1730,24 @@ describe("MatrixClient crypto bootstrapping", () => {
 
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      idbSnapshotPath: path.join(os.tmpdir(), "matrix-idb-interval.json"),
+      idbSnapshotRef: {
+        stateDir: path.join(os.tmpdir(), "matrix-idb-interval-state"),
+        storageKey: "matrix-idb-interval",
+      },
       cryptoDatabasePrefix: "openclaw-matrix-interval",
     });
+    setIntervalSpy.mockClear();
 
     await client.start();
 
     expect(databasesSpy).toHaveBeenCalled();
-    const intervalCall = setIntervalSpy.mock.calls[0] as unknown[];
+    const intervalCall = setIntervalSpy.mock.calls.find((call) => call[1] === 60_000) as
+      | unknown[]
+      | undefined;
+    expect(intervalCall).toBeDefined();
+    if (!intervalCall) {
+      throw new Error("expected Matrix IDB persistence interval to be scheduled");
+    }
     expect(intervalCall[0]).toBeTypeOf("function");
     expect(intervalCall[1]).toBe(60_000);
     client.stop();
@@ -1973,7 +1992,9 @@ describe("MatrixClient crypto bootstrapping", () => {
     const recoveryDir = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-sdk-verify-key-"));
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath: path.join(recoveryDir, "recovery-key.json"),
+      recoveryKeyRef: {
+        storageKey: recoveryDir,
+      },
     });
 
     const result = await client.verifyWithRecoveryKey(encoded as string);
@@ -2033,7 +2054,7 @@ describe("MatrixClient crypto bootstrapping", () => {
     const recoveryKeyPath = createTestRecoveryKeyPath("matrix-sdk-verify-used-key-");
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath,
+      recoveryKeyRef: createTestRecoveryKeyRef(recoveryKeyPath),
     });
 
     const result = await client.verifyWithRecoveryKey(encoded as string);
@@ -2043,7 +2064,9 @@ describe("MatrixClient crypto bootstrapping", () => {
     expect(result.backupUsable).toBe(true);
     expect(result.deviceOwnerVerified).toBe(true);
     expect(result.recoveryKeyStored).toBe(true);
-    expect(readMatrixRecoveryKey(recoveryKeyPath)?.encodedPrivateKey).toBe(encoded);
+    expect(
+      readMatrixRecoveryKey(createTestRecoveryKeyRef(recoveryKeyPath))?.encodedPrivateKey,
+    ).toBe(encoded);
     expect(fs.existsSync(recoveryKeyPath)).toBe(false);
   });
 
@@ -2073,7 +2096,9 @@ describe("MatrixClient crypto bootstrapping", () => {
     const recoveryDir = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-sdk-verify-local-only-"));
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath: path.join(recoveryDir, "recovery-key.json"),
+      recoveryKeyRef: {
+        storageKey: recoveryDir,
+      },
     });
     await client.start();
 
@@ -2129,7 +2154,7 @@ describe("MatrixClient crypto bootstrapping", () => {
     const recoveryKeyPath = createTestRecoveryKeyPath("matrix-sdk-verify-usable-");
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath,
+      recoveryKeyRef: createTestRecoveryKeyRef(recoveryKeyPath),
     });
 
     const result = await client.verifyWithRecoveryKey(encoded as string);
@@ -2139,7 +2164,9 @@ describe("MatrixClient crypto bootstrapping", () => {
     expect(result.deviceOwnerVerified).toBe(false);
     expect(result.verified).toBe(false);
     expect(result.recoveryKeyStored).toBe(true);
-    expect(readMatrixRecoveryKey(recoveryKeyPath)?.encodedPrivateKey).toBe(encoded);
+    expect(
+      readMatrixRecoveryKey(createTestRecoveryKeyRef(recoveryKeyPath))?.encodedPrivateKey,
+    ).toBe(encoded);
     expect(fs.existsSync(recoveryKeyPath)).toBe(false);
   });
 
@@ -2192,7 +2219,7 @@ describe("MatrixClient crypto bootstrapping", () => {
 
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath,
+      recoveryKeyRef: createTestRecoveryKeyRef(recoveryKeyPath),
     });
 
     const result = await client.verifyWithRecoveryKey(attemptedEncoded as string);
@@ -2200,7 +2227,9 @@ describe("MatrixClient crypto bootstrapping", () => {
     expect(result.success).toBe(false);
     expect(result.recoveryKeyAccepted).toBe(false);
     expect(result.backupUsable).toBe(true);
-    expect(readMatrixRecoveryKey(recoveryKeyPath)?.encodedPrivateKey).toBe(previousEncoded);
+    expect(
+      readMatrixRecoveryKey(createTestRecoveryKeyRef(recoveryKeyPath))?.encodedPrivateKey,
+    ).toBe(previousEncoded);
   });
 
   it("does not persist a staged recovery key that secret storage did not validate", async () => {
@@ -2252,7 +2281,7 @@ describe("MatrixClient crypto bootstrapping", () => {
 
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath,
+      recoveryKeyRef: createTestRecoveryKeyRef(recoveryKeyPath),
     });
 
     const result = await client.verifyWithRecoveryKey(attemptedEncoded as string);
@@ -2260,7 +2289,9 @@ describe("MatrixClient crypto bootstrapping", () => {
     expect(result.success).toBe(false);
     expect(result.recoveryKeyAccepted).toBe(false);
     expect(result.backupUsable).toBe(true);
-    expect(readMatrixRecoveryKey(recoveryKeyPath)?.encodedPrivateKey).toBe(previousEncoded);
+    expect(
+      readMatrixRecoveryKey(createTestRecoveryKeyRef(recoveryKeyPath))?.encodedPrivateKey,
+    ).toBe(previousEncoded);
   });
 
   it("returns recovery-key diagnostics without bootstrapping when backup is already usable", async () => {
@@ -2310,7 +2341,7 @@ describe("MatrixClient crypto bootstrapping", () => {
 
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath,
+      recoveryKeyRef: createTestRecoveryKeyRef(recoveryKeyPath),
     });
 
     const result = await client.verifyWithRecoveryKey(encoded as string);
@@ -2362,7 +2393,7 @@ describe("MatrixClient crypto bootstrapping", () => {
     const recoveryKeyPath = path.join(recoveryDir, "recovery-key.json");
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath,
+      recoveryKeyRef: createTestRecoveryKeyRef(recoveryKeyPath),
     });
 
     const result = await client.verifyWithRecoveryKey(encoded as string);
@@ -2414,14 +2445,16 @@ describe("MatrixClient crypto bootstrapping", () => {
     });
     const client = new MatrixClient("https://matrix.example.org", "token", {
       encryption: true,
-      recoveryKeyPath,
+      recoveryKeyRef: createTestRecoveryKeyRef(recoveryKeyPath),
     });
 
     const result = await client.verifyWithRecoveryKey(attemptedEncoded as string);
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("full Matrix identity trust");
-    expect(readMatrixRecoveryKey(recoveryKeyPath)?.encodedPrivateKey).toBe(previousEncoded);
+    expect(
+      readMatrixRecoveryKey(createTestRecoveryKeyRef(recoveryKeyPath))?.encodedPrivateKey,
+    ).toBe(previousEncoded);
   });
 
   it("reports detailed room-key backup health", async () => {

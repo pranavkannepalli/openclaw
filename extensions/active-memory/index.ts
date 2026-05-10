@@ -1491,7 +1491,7 @@ function resolveTranscriptReadLimits(
   };
 }
 
-async function streamBoundedTranscriptJsonl(params: {
+async function streamBoundedTranscriptEvents(params: {
   transcriptScope: TranscriptScope;
   limits?: TranscriptReadLimits;
   onRecord: (record: unknown) => boolean | void;
@@ -1591,7 +1591,7 @@ async function readActiveMemorySearchDebug(
   limits?: TranscriptReadLimits,
 ): Promise<ActiveMemorySearchDebug | undefined> {
   let found: ActiveMemorySearchDebug | undefined;
-  await streamBoundedTranscriptJsonl({
+  await streamBoundedTranscriptEvents({
     transcriptScope,
     limits,
     onRecord: (record) => {
@@ -1609,7 +1609,7 @@ async function readTerminalMemorySearchResult(
   limits?: TranscriptReadLimits,
 ): Promise<TerminalMemorySearchResult | undefined> {
   let found: TerminalMemorySearchResult | undefined;
-  await streamBoundedTranscriptJsonl({
+  await streamBoundedTranscriptEvents({
     transcriptScope,
     limits,
     onRecord: (record) => {
@@ -1762,7 +1762,7 @@ async function readPartialAssistantText(
   const texts: string[] = [];
   const resolvedLimits = resolveTranscriptReadLimits(limits);
   let collectedChars = 0;
-  await streamBoundedTranscriptJsonl({
+  await streamBoundedTranscriptEvents({
     transcriptScope,
     limits: resolvedLimits,
     onRecord: (record) => {
@@ -1875,7 +1875,9 @@ async function buildTimeoutRecallResult(params: {
   const searchDebug =
     params.searchDebug ??
     subagentPartialData.searchDebug ??
-    (params.transcriptScope ? await readActiveMemorySearchDebug(params.transcriptScope) : undefined);
+    (params.transcriptScope
+      ? await readActiveMemorySearchDebug(params.transcriptScope)
+      : undefined);
   if (summary.length === 0) {
     return {
       status: "timeout",
@@ -1888,7 +1890,6 @@ async function buildTimeoutRecallResult(params: {
     status: "timeout_partial",
     elapsedMs: params.elapsedMs,
     summary,
-    searchDebug,
     searchDebug,
   };
 }
@@ -2596,8 +2597,12 @@ async function maybeResolveActiveRecall(params: {
       return result;
     }
 
-    const { rawReply, resultStatus, transcriptScope: persistedTranscriptScope, searchDebug } =
-      raceResult;
+    const {
+      rawReply,
+      resultStatus,
+      transcriptScope: persistedTranscriptScope,
+      searchDebug,
+    } = raceResult;
     const summary = truncateSummary(
       normalizeActiveSummary(rawReply) ?? "",
       params.config.maxSummaryChars,

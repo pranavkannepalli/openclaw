@@ -340,28 +340,21 @@ describe("openai tts", () => {
       const tempDir = mkdtempSync(path.join(os.tmpdir(), "openai-tts-capture-"));
       proxyReset.captureProxyEnv();
       process.env.OPENCLAW_DEBUG_PROXY_ENABLED = "1";
-      process.env.OPENCLAW_DEBUG_PROXY_DB_PATH = path.join(tempDir, "capture.sqlite");
-      process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR = path.join(tempDir, "blobs");
+      process.env.OPENCLAW_STATE_DIR = tempDir;
       process.env.OPENCLAW_DEBUG_PROXY_SESSION_ID = "tts-session";
-
       globalThis.fetch = vi
         .fn()
         .mockResolvedValue(
           new Response(Buffer.from("audio-bytes"), { status: 200 }),
         ) as unknown as typeof globalThis.fetch;
 
-      const store = getDebugProxyCaptureStore(
-        process.env.OPENCLAW_DEBUG_PROXY_DB_PATH,
-        process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR,
-      );
+      const store = getDebugProxyCaptureStore();
       store.upsertSession({
         id: "tts-session",
         startedAt: Date.now(),
         mode: "test",
         sourceScope: "openclaw",
         sourceProcess: "openclaw",
-        dbPath: process.env.OPENCLAW_DEBUG_PROXY_DB_PATH,
-        blobDir: process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR,
       });
 
       await openaiTTS({
@@ -388,10 +381,8 @@ describe("openai tts", () => {
       const tempDir = mkdtempSync(path.join(os.tmpdir(), "openai-tts-patched-capture-"));
       proxyReset.captureProxyEnv();
       process.env.OPENCLAW_DEBUG_PROXY_ENABLED = "1";
-      process.env.OPENCLAW_DEBUG_PROXY_DB_PATH = path.join(tempDir, "capture.sqlite");
-      process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR = path.join(tempDir, "blobs");
+      process.env.OPENCLAW_STATE_DIR = tempDir;
       process.env.OPENCLAW_DEBUG_PROXY_SESSION_ID = "tts-patched-session";
-
       globalThis.fetch = vi
         .fn()
         .mockResolvedValue(
@@ -412,10 +403,7 @@ describe("openai tts", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
       finalizeDebugProxyCapture();
 
-      const store = getDebugProxyCaptureStore(
-        process.env.OPENCLAW_DEBUG_PROXY_DB_PATH,
-        process.env.OPENCLAW_DEBUG_PROXY_BLOB_DIR,
-      );
+      const store = getDebugProxyCaptureStore();
       const events = store
         .getSessionEvents("tts-patched-session", 10)
         .filter((event) => event.host === "api.openai.com");

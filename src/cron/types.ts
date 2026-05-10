@@ -235,7 +235,7 @@ export type CronJob = CronJobBase<
   state: CronJobState;
 };
 
-export type CronStoreFile = {
+export type CronStoreSnapshot = {
   version: 1;
   jobs: CronJob[];
 };

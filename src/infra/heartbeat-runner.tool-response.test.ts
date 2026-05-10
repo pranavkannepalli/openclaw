@@ -68,7 +68,6 @@ describe("runHeartbeatOnce heartbeat response tool", () => {
       const cfg = createConfig({ tmpDir, agentId });
       await seedMainHeartbeatSession(agentId, cfg, {
         lastChannel: "telegram",
-        lastProvider: "telegram",
         lastTo: TELEGRAM_GROUP,
       });
       replySpy.mockResolvedValue(createHeartbeatToolResponsePayload(response));
@@ -99,7 +98,6 @@ describe("runHeartbeatOnce heartbeat response tool", () => {
       await params.beforeSeed?.({ tmpDir, agentId, cfg });
       await seedMainHeartbeatSession(agentId, cfg, {
         lastChannel: "telegram",
-        lastProvider: "telegram",
         lastTo: TELEGRAM_GROUP,
         ...params.session,
       });
@@ -191,7 +189,6 @@ describe("runHeartbeatOnce heartbeat response tool", () => {
       const cfg = createConfig({ tmpDir, agentId });
       await seedMainHeartbeatSession(agentId, cfg, {
         lastChannel: "telegram",
-        lastProvider: "telegram",
         lastTo: TELEGRAM_GROUP,
         agentHarnessId: "codex",
       });
@@ -271,7 +268,6 @@ describe("runHeartbeatOnce heartbeat response tool", () => {
       const cfg = createConfig({ tmpDir, agentId, visibleReplies: "automatic" });
       await seedMainHeartbeatSession(agentId, cfg, {
         lastChannel: "telegram",
-        lastProvider: "telegram",
         lastTo: TELEGRAM_GROUP,
       });
       replySpy.mockResolvedValue(

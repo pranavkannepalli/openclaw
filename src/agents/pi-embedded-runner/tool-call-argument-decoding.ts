@@ -1,6 +1,6 @@
-import type { StreamFn } from "@mariozechner/pi-agent-core";
-import { streamSimple } from "@mariozechner/pi-ai";
 import { visitObjectContentBlocks } from "../../shared/message-content-blocks.js";
+import type { StreamFn } from "../agent-core-contract.js";
+import { streamSimple } from "../pi-ai-contract.js";
 
 const HTML_ENTITY_RE = /&(?:amp|lt|gt|quot|apos|#39|#x[0-9a-f]+|#\d+);/i;
 

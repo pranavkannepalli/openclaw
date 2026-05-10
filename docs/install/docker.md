@@ -268,7 +268,7 @@ emitting an empty-source volume spec on bare environments.
 That mounted config directory is where OpenClaw keeps:
 
 - `openclaw.json` for behavior config
-- `agents/<agentId>/agent/auth-profiles.json` for stored provider OAuth/API-key auth
+- `state/openclaw.sqlite#kv/auth-profiles/<agentDir>` for stored provider OAuth/API-key auth
 - `.env` for env-backed runtime secrets such as `OPENCLAW_GATEWAY_TOKEN`
 
 Installed downloadable plugins store their package state under the mounted
