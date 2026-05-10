@@ -1,5 +1,3 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { ImageContent } from "@mariozechner/pi-ai";
 import type {
   PartialReplyPayload,
   SourceReplyDeliveryMode,

@@ -94,7 +94,12 @@ describe("auth-profiles (chutes)", () => {
         expect(fetchSpy).toHaveBeenCalled();
 
         const persisted = loadPersistedAuthProfileStore(state.agentDir());
-        expect(persisted?.profiles?.["chutes:default"]?.access).toBe("at_new");
+        const persistedProfile = persisted?.profiles?.["chutes:default"];
+        expect(persistedProfile?.type).toBe("oauth");
+        if (persistedProfile?.type !== "oauth") {
+          throw new Error("expected persisted Chutes OAuth profile");
+        }
+        expect(persistedProfile.access).toBe("at_new");
       },
     );
   });
