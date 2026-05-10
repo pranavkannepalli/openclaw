@@ -4,6 +4,7 @@ import path from "node:path";
 import {
   clearRuntimeAuthProfileStoreSnapshots,
   ensureAuthProfileStore,
+  saveAuthProfileStore,
 } from "openclaw/plugin-sdk/agent-runtime";
 import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
@@ -40,6 +41,22 @@ async function createAgentDir() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-github-copilot-test-"));
   tempDirs.push(dir);
   return dir;
+}
+
+function seedGithubCopilotTokenProfile(agentDir: string, token = "existing-token") {
+  saveAuthProfileStore(
+    {
+      version: 1,
+      profiles: {
+        "github-copilot:github": {
+          type: "token",
+          provider: "github-copilot",
+          token,
+        },
+      },
+    },
+    agentDir,
+  );
 }
 
 function _registerProvider() {
@@ -199,19 +216,7 @@ describe("github-copilot plugin", () => {
     const provider = registerProviderWithPluginConfig({});
     const method = provider.auth[0];
     const agentDir = await createAgentDir();
-    await fs.writeFile(
-      path.join(agentDir, "auth-profiles.json"),
-      JSON.stringify({
-        version: 1,
-        profiles: {
-          "github-copilot:github": {
-            type: "token",
-            provider: "github-copilot",
-            token: "existing-token",
-          },
-        },
-      }),
-    );
+    seedGithubCopilotTokenProfile(agentDir);
     const prompter = {
       confirm: vi.fn(async () => false),
       note: vi.fn(),
@@ -256,19 +261,7 @@ describe("github-copilot plugin", () => {
     const provider = registerProviderWithPluginConfig({});
     const method = provider.auth[0];
     const agentDir = await createAgentDir();
-    await fs.writeFile(
-      path.join(agentDir, "auth-profiles.json"),
-      JSON.stringify({
-        version: 1,
-        profiles: {
-          "github-copilot:github": {
-            type: "token",
-            provider: "github-copilot",
-            token: "existing-token",
-          },
-        },
-      }),
-    );
+    seedGithubCopilotTokenProfile(agentDir);
     const fetchMock = vi.fn(async (input: unknown) => {
       const target =
         typeof input === "string"
@@ -513,19 +506,7 @@ describe("github-copilot plugin", () => {
     const method = provider.auth[0];
     const agentDir = await createAgentDir();
     const runtime = { error: vi.fn(), exit: vi.fn() };
-    await fs.writeFile(
-      path.join(agentDir, "auth-profiles.json"),
-      JSON.stringify({
-        version: 1,
-        profiles: {
-          "github-copilot:github": {
-            type: "token",
-            provider: "github-copilot",
-            token: "existing-token",
-          },
-        },
-      }),
-    );
+    seedGithubCopilotTokenProfile(agentDir);
 
     const result = await method.runNonInteractive({
       authChoice: "github-copilot",
