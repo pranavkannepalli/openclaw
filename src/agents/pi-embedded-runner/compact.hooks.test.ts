@@ -766,7 +766,7 @@ describe("compactEmbeddedPiSessionDirect hooks", () => {
           agents: {
             defaults: {
               compaction: {
-                truncateAfterCompaction: true,
+                rotateAfterCompaction: true,
                 postIndexSync: "await",
               },
             },
@@ -1437,7 +1437,7 @@ describe("compactEmbeddedPiSession hooks (ownsCompaction engine)", () => {
           agents: {
             defaults: {
               compaction: {
-                truncateAfterCompaction: true,
+                rotateAfterCompaction: true,
               },
             },
           },
@@ -1484,7 +1484,7 @@ describe("compactEmbeddedPiSession hooks (ownsCompaction engine)", () => {
           agents: {
             defaults: {
               compaction: {
-                truncateAfterCompaction: true,
+                rotateAfterCompaction: true,
               },
             },
           },

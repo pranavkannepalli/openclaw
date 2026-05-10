@@ -163,14 +163,14 @@ describe("agent defaults schema", () => {
     expect(result.embeddedPi?.executionContract).toBe("strict-agentic");
   });
 
-  it("accepts compaction.truncateAfterCompaction", () => {
+  it("accepts compaction.rotateAfterCompaction", () => {
     const result = AgentDefaultsSchema.parse({
       compaction: {
-        truncateAfterCompaction: true,
+        rotateAfterCompaction: true,
         maxActiveTranscriptBytes: "20mb",
       },
     })!;
-    expect(result.compaction?.truncateAfterCompaction).toBe(true);
+    expect(result.compaction?.rotateAfterCompaction).toBe(true);
     expect(result.compaction?.maxActiveTranscriptBytes).toBe("20mb");
   });
 
