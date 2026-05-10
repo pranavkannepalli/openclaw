@@ -542,7 +542,7 @@ describe("runDaemonInstall", () => {
       NODE_USE_SYSTEM_CA: undefined,
     }));
     service.readCommand.mockResolvedValue({
-      programArguments: ["/home/test/.nvm/versions/node/v22.18.0/bin/node", "dist/entry.js"],
+      programArguments: ["/home/test/.nvm/versions/node/v24.12.0/bin/node", "dist/entry.js"],
       environment: {},
     } as never);
 
@@ -550,7 +550,7 @@ describe("runDaemonInstall", () => {
 
     expect(installDaemonServiceAndEmitMock).toHaveBeenCalledTimes(1);
     expectFields(resolveNodeStartupTlsEnvironmentMock.mock.calls[0]?.[0], {
-      execPath: "/home/test/.nvm/versions/node/v22.18.0/bin/node",
+      execPath: "/home/test/.nvm/versions/node/v24.12.0/bin/node",
     });
   });
 
