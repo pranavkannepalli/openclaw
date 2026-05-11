@@ -527,7 +527,7 @@ export async function initSessionState(params: {
     : resolveLastChannelRaw({
         originatingChannelRaw,
         persistedLastChannel: baseEntry?.lastChannel,
-        sessionKey,
+        chatType: baseEntry?.chatType ?? ctx.ChatType,
         isInterSession,
       });
   const lastToRaw = isSystemEvent
@@ -538,7 +538,7 @@ export async function initSessionState(params: {
         toRaw: ctx.To,
         persistedLastTo: baseEntry?.lastTo,
         persistedLastChannel: baseEntry?.lastChannel,
-        sessionKey,
+        chatType: baseEntry?.chatType ?? ctx.ChatType,
         isInterSession,
       });
   const lastAccountIdRaw = isSystemEvent
