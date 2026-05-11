@@ -59,6 +59,7 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- iMessage: route inbound tapbacks as reaction system events instead of normal messages, defaulting to bot-authored-message notifications while allowing `reactionNotifications: "off" | "own" | "all"` overrides. Fixes #60274; refs #39031 and #39322. Thanks @hyperclaw.
 - Plugins/update: include beta-channel fallback details in plugin update outcomes when `@beta` is unavailable and OpenClaw uses the recorded default/latest plugin spec, making mixed beta/latest plugin cohorts visible in update summaries. Fixes #80689. Thanks @BKF-Gitty.
 - Control UI/performance: scope Nodes polling to the active Nodes tab, debounce stale session-list reconciliation, and bound chat-side session refreshes so long-running dashboards avoid background reload churn. Thanks @BunsDev.
 - Plugins/channels: explain bundled channel entry files that reach the legacy plugin loader as setup-runtime loader mismatches instead of generic missing-register failures. Thanks @chinar-amrutkar.
