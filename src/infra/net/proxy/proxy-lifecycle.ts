@@ -8,7 +8,7 @@
  */
 
 import { isIP } from "node:net";
-import { installGlobalProxy, type ProxylineHandle } from "@jesse-merhi/proxyline";
+import { installGlobalProxy, type ProxylineHandle } from "@openclaw/proxyline";
 import type { ProxyConfig } from "../../../config/zod-schema.proxy.js";
 
 export type ProxyLoopbackMode = NonNullable<NonNullable<ProxyConfig>["loopbackMode"]>;

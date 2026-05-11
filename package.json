@@ -1698,7 +1698,7 @@
     "@grammyjs/runner": "^2.0.3",
     "@grammyjs/transformer-throttler": "^1.2.1",
     "@homebridge/ciao": "^1.3.8",
-    "@jesse-merhi/proxyline": "git+https://github.com/jesse-merhi/proxyline.git#f8a80c487b112db11e10a6dc25516f9012eed46f",
+    "@openclaw/proxyline": "git+ssh://git@github.com/openclaw/proxyline.git#aeb4bdb3fddc75689a155f6e35c77caaefb55632",
     "@lydell/node-pty": "1.2.0-beta.12",
     "@mariozechner/pi-agent-core": "0.73.1",
     "@mariozechner/pi-ai": "0.73.1",
@@ -1817,7 +1817,7 @@
       "uuid": "14.0.0"
     },
     "onlyBuiltDependencies": [
-      "@jesse-merhi/proxyline",
+      "@openclaw/proxyline",
       "@openclaw/fs-safe",
       "@discordjs/opus",
       "@google/genai",
