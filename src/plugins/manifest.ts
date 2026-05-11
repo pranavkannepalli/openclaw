@@ -1770,7 +1770,7 @@ export type OpenClawPackageStartup = {
 export type OpenClawPackageSetupFeatures = {
   configPromotion?: boolean;
   doctorLegacyState?: boolean;
-  legacySessionSurfaces?: boolean;
+  doctorSessionMigrationSurface?: boolean;
 };
 
 export type OpenClawPackageManifest = {

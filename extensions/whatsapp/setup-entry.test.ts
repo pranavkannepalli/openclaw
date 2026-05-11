@@ -14,7 +14,7 @@ describe("whatsapp setup entry", () => {
 
     expect(setupEntry.kind).toBe("bundled-channel-setup-entry");
     expect(setupEntry.features).toEqual({
-      legacySessionSurfaces: true,
+      doctorSessionMigrationSurface: true,
       doctorLegacyState: true,
     });
 
@@ -32,7 +32,7 @@ describe("whatsapp setup entry", () => {
         stateDir: "/tmp/openclaw-state",
       }),
     ).toStrictEqual([]);
-    expect(setupEntry.loadLegacySessionSurface?.()).toEqual({
+    expect(setupEntry.loadDoctorSessionMigrationSurface?.()).toEqual({
       canonicalizeLegacySessionKey: expect.any(Function),
       isLegacyGroupSessionKey: expect.any(Function),
     });
