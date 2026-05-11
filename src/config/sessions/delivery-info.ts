@@ -1,7 +1,5 @@
 import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { readSqliteSessionDeliveryContext } from "./session-entries.sqlite.js";
-import { parseSessionThreadInfo } from "./thread-info.js";
-export { parseSessionThreadInfo } from "./thread-info.js";
 
 export function extractDeliveryInfo(sessionKey: string | undefined): {
   deliveryContext:
@@ -9,9 +7,8 @@ export function extractDeliveryInfo(sessionKey: string | undefined): {
     | undefined;
   threadId: string | undefined;
 } {
-  const { baseSessionKey, threadId } = parseSessionThreadInfo(sessionKey);
-  if (!sessionKey || !baseSessionKey) {
-    return { deliveryContext: undefined, threadId };
+  if (!sessionKey) {
+    return { deliveryContext: undefined, threadId: undefined };
   }
 
   let deliveryContext:
@@ -19,16 +16,12 @@ export function extractDeliveryInfo(sessionKey: string | undefined): {
     | undefined;
   try {
     const agentId = resolveAgentIdFromSessionKey(sessionKey);
-    deliveryContext =
-      readSqliteSessionDeliveryContext({ agentId, sessionKey }) ??
-      (baseSessionKey !== sessionKey
-        ? readSqliteSessionDeliveryContext({ agentId, sessionKey: baseSessionKey })
-        : undefined);
+    deliveryContext = readSqliteSessionDeliveryContext({ agentId, sessionKey });
   } catch {
     // ignore: best-effort
   }
   return {
     deliveryContext,
-    threadId: threadId !== undefined ? (deliveryContext?.threadId ?? threadId) : undefined,
+    threadId: deliveryContext?.threadId,
   };
 }

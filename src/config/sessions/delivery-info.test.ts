@@ -11,7 +11,7 @@ import {
 } from "../../state/openclaw-agent-db.js";
 import { closeOpenClawStateDatabaseForTest } from "../../state/openclaw-state-db.js";
 import { createSessionConversationTestRegistry } from "../../test-utils/session-conversation-registry.js";
-import { extractDeliveryInfo, parseSessionThreadInfo } from "./delivery-info.js";
+import { extractDeliveryInfo } from "./delivery-info.js";
 import { upsertSessionEntry } from "./store.js";
 import type { SessionEntry } from "./types.js";
 
@@ -74,42 +74,6 @@ beforeEach(() => {
 });
 
 describe("extractDeliveryInfo", () => {
-  it("parses base session and thread/topic ids", () => {
-    expect(parseSessionThreadInfo("agent:main:telegram:group:1:topic:55")).toEqual({
-      baseSessionKey: "agent:main:telegram:group:1",
-      threadId: "55",
-    });
-    expect(parseSessionThreadInfo("agent:main:slack:channel:C1:thread:123.456")).toEqual({
-      baseSessionKey: "agent:main:slack:channel:C1",
-      threadId: "123.456",
-    });
-    expect(
-      parseSessionThreadInfo(
-        "agent:main:matrix:channel:!room:example.org:thread:$AbC123:example.org",
-      ),
-    ).toEqual({
-      baseSessionKey: "agent:main:matrix:channel:!room:example.org",
-      threadId: "$AbC123:example.org",
-    });
-    expect(
-      parseSessionThreadInfo(
-        "agent:main:feishu:group:oc_group_chat:topic:om_topic_root:sender:ou_topic_user",
-      ),
-    ).toEqual({
-      baseSessionKey:
-        "agent:main:feishu:group:oc_group_chat:topic:om_topic_root:sender:ou_topic_user",
-      threadId: undefined,
-    });
-    expect(parseSessionThreadInfo("agent:main:telegram:dm:user-1")).toEqual({
-      baseSessionKey: "agent:main:telegram:dm:user-1",
-      threadId: undefined,
-    });
-    expect(parseSessionThreadInfo(undefined)).toEqual({
-      baseSessionKey: undefined,
-      threadId: undefined,
-    });
-  });
-
   it("returns typed delivery context for direct session keys", () => {
     const { env } = useTempStateDir();
     const sessionKey = "agent:main:webchat:dm:user-123";
@@ -193,7 +157,7 @@ describe("extractDeliveryInfo", () => {
     });
   });
 
-  it("falls back to base sessions for :thread: keys", () => {
+  it("does not fall back to base sessions for :thread: keys", () => {
     const { env } = useTempStateDir();
     const baseKey = "agent:main:slack:channel:C0123ABC";
     const threadKey = `${baseKey}:thread:1234567890.123456`;
@@ -209,16 +173,12 @@ describe("extractDeliveryInfo", () => {
     });
 
     expect(extractDeliveryInfo(threadKey)).toEqual({
-      deliveryContext: {
-        channel: "slack",
-        to: "slack:C0123ABC",
-        accountId: "workspace-1",
-      },
-      threadId: "1234567890.123456",
+      deliveryContext: undefined,
+      threadId: undefined,
     });
   });
 
-  it("falls back to base sessions for :topic: keys", () => {
+  it("does not fall back to base sessions for :topic: keys", () => {
     const { env } = useTempStateDir();
     const baseKey = "agent:main:telegram:group:98765";
     const topicKey = `${baseKey}:topic:55`;
@@ -237,13 +197,8 @@ describe("extractDeliveryInfo", () => {
     });
 
     expect(extractDeliveryInfo(topicKey)).toEqual({
-      deliveryContext: {
-        channel: "telegram",
-        to: "group:98765",
-        accountId: "main",
-        threadId: "55",
-      },
-      threadId: "55",
+      deliveryContext: undefined,
+      threadId: undefined,
     });
   });
 
@@ -301,7 +256,7 @@ describe("extractDeliveryInfo", () => {
         accountId: "main",
         threadId: "77",
       },
-      threadId: undefined,
+      threadId: "77",
     });
   });
 
@@ -330,7 +285,7 @@ describe("extractDeliveryInfo", () => {
     });
   });
 
-  it("falls back to the base session when a thread entry only has partial route metadata", () => {
+  it("does not fall back to the base session when a thread entry only has partial route metadata", () => {
     const { env } = useTempStateDir();
     const baseKey = "agent:main:matrix:channel:!MixedCase:example.org";
     const threadKey = `${baseKey}:thread:$thread-event`;
@@ -356,12 +311,8 @@ describe("extractDeliveryInfo", () => {
     });
 
     expect(extractDeliveryInfo(threadKey)).toEqual({
-      deliveryContext: {
-        channel: "matrix",
-        to: "room:!MixedCase:example.org",
-        accountId: "default",
-      },
-      threadId: "$thread-event",
+      deliveryContext: undefined,
+      threadId: undefined,
     });
   });
 });
