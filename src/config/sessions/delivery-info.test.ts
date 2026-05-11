@@ -277,7 +277,7 @@ describe("extractDeliveryInfo", () => {
     });
   });
 
-  it("falls back to session metadata thread ids when deliveryContext.threadId is missing", () => {
+  it("falls back to typed lastThreadId when deliveryContext.threadId is missing", () => {
     const { env } = useTempStateDir();
     const sessionKey = "agent:main:telegram:group:98765";
     upsertSessionEntry({
@@ -290,7 +290,7 @@ describe("extractDeliveryInfo", () => {
           to: "group:98765",
           accountId: "main",
         }),
-        origin: { threadId: 77 },
+        lastThreadId: 77,
       },
     });
 
