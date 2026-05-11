@@ -1029,6 +1029,19 @@ describe("sessions tools", () => {
           ],
         };
       }
+      if (request.method === "sessions.list") {
+        return {
+          sessions: [
+            {
+              key: targetKey,
+              deliveryContext: {
+                channel: "discord",
+                to: "group:target",
+              },
+            },
+          ],
+        };
+      }
       if (request.method === "send") {
         const params = request.params as
           | { to?: string; channel?: string; message?: string }
