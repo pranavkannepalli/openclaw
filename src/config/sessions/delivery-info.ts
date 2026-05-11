@@ -27,5 +27,8 @@ export function extractDeliveryInfo(sessionKey: string | undefined): {
   } catch {
     // ignore: best-effort
   }
-  return { deliveryContext, threadId };
+  return {
+    deliveryContext,
+    threadId: threadId !== undefined ? (deliveryContext?.threadId ?? threadId) : undefined,
+  };
 }
