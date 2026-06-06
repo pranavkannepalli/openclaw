@@ -438,6 +438,82 @@ Disable cron: `cron.enabled: false` or `OPENCLAW_SKIP_CRON=1`.
   </Accordion>
 </AccordionGroup>
 
+## Operator preflight validation checklist (copy/paste)
+
+Use this checklist before enabling or editing a cron job that runs an isolated agent turn (or uses `delivery.mode: none`). It mirrors the runtime preflight behavior field-by-field: if you can’t verify a required field, treat the run as **FAIL** and do not enable the job yet.
+
+### Copy/paste checklist
+
+```text
+# Set
+JOB_ID=<cron job id from: openclaw cron list>
+
+# Inspect
+openclaw cron show "$JOB_ID"
+openclaw cron get "$JOB_ID"
+
+# PASS only if ALL checks below are true:
+
+[ ] sessionTarget is exactly "isolated" (isolated jobs must provide an explicit payload; main-session style is not a substitute).
+
+[ ] payload.kind is "agentTurn" AND payload.message is a non-empty string.
+
+[ ] delivery.mode is one of:
+    - "announce": requires delivery.channel AND delivery.to.
+    - "webhook": requires delivery.to.
+    - "none": failures must still be visible via either:
+        a) global cron.failureDestination, OR
+        b) job-level job.delivery.failureDestination.
+
+[ ] delivery.failureDestination is present when delivery.mode is "none" (or when you intentionally want failures routed somewhere other than the success delivery route).
+
+[ ] If a local provider baseUrl is configured (loopback/private-network/.local), confirm the endpoint is reachable from the Gateway network.
+    - If it is down, cron will mark the run as "skipped" and retry later.
+
+[ ] tools are allowed for the agent turn (job-level toolsAllow / cron payload --tools). For a build-style queue sweep, ensure the allowlist includes only what the task actually needs (for example: exec, read, write, edit).
+
+[ ] timeoutSeconds is sufficient for the job’s worst-case work; if you omit it, confirm you are comfortable with the config default.
+
+[ ] Required external auth/hooks are configured (for example webhooks + token), and you can retrieve/validate the delivery target.
+
+# FAIL rules (do one of these):
+# - If any required field is missing/invalid in openclaw cron show/get output
+# - If you cannot verify delivery.failureDestination routing for delivery.mode="none"
+# - If local-provider endpoint reachability cannot be verified
+#
+# THEN:
+# - disable the job (set enabled=false in your cron store)
+# - fix the fields
+# - re-run the checklist before re-enabling
+```
+
+### Worked example (PASS)
+
+Scenario: **Build queue sweep** is enabled for the `wrench` worker.
+
+- sessionTarget: `isolated`
+- payload.kind: `agentTurn`
+- payload.message: present
+- delivery.mode: `announce`
+- delivery.channel + delivery.to: present
+- local provider endpoints (if any) reachable
+- toolsAllow includes the minimal required toolset for the sweep
+
+Outcome: cron preflight passes; failures are observable because announce delivery establishes a visible success route and you can optionally set failureDestination.
+
+### Worked example (FAIL)
+
+Scenario: a cron job is configured with `delivery.mode: "none"`, but neither `cron.failureDestination` nor `job.delivery.failureDestination` is set.
+
+Observed risk:
+
+- cron runs can fail silently (no runner fallback delivery) and you may only see it in internal logs.
+
+Corrective action:
+
+- set **either** `cron.failureDestination` (global) **or** `job.delivery.failureDestination` (per job)
+- re-run the checklist and only then re-enable the job.
+
 ## Troubleshooting
 
 ### Command ladder
