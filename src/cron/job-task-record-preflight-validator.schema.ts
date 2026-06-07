@@ -11,9 +11,9 @@ export type CronJobTaskRecord = {
   next_action: string;
   created_at: string;
   updated_at: string;
-  due_at?: string | null;
-  deliverable?: string | null;
-  blocker?: string | null;
+  due_at: string | null;
+  deliverable: string | null;
+  blocker: string | null;
   [key: string]: unknown;
 };
 
@@ -31,6 +31,9 @@ export const cronJobTaskRecordRequiredFields = [
   "next_action",
   "created_at",
   "updated_at",
+  "due_at",
+  "deliverable",
+  "blocker",
 ] as const;
 
 export const cronJobTaskRecordFieldTypes = {

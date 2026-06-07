@@ -76,6 +76,13 @@ export function validateCronJobTaskRecordPreflight(
     const allowed = expectedTypeUnion ? parseExpectedType(expectedTypeUnion) : [];
 
     // Enforce required fields as BOTH: (a) present and (b) matching expected runtime type.
+    if (value === null) {
+      if (allowed.includes("null")) continue;
+      missingFields.push(field);
+      missingRequiredSet.add(field);
+      continue;
+    }
+
     if (allowed.includes("string")) {
       if (typeof value !== "string" || value.trim().length === 0) {
         missingFields.push(field);
@@ -90,12 +97,6 @@ export function validateCronJobTaskRecordPreflight(
         missingRequiredSet.add(field);
       }
       continue;
-    }
-
-    // Fallback for fields without an expected type definition.
-    if (value === null) {
-      missingFields.push(field);
-      missingRequiredSet.add(field);
     }
   }
 
