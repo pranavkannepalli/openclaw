@@ -1,6 +1,9 @@
 import fs from "node:fs";
-import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  cronJobTaskRecordFieldTypes,
+  cronJobTaskRecordRequiredFields,
+} from "./job-task-record-preflight-validator.schema.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -8,8 +11,6 @@ type Snapshot = {
   name: string;
   version: number;
   literals?: Record<string, string>;
-  requiredFields: string[];
-  fieldTypes: Record<string, string>; // e.g. "string|null"
 };
 
 export type DriftMismatch = {
@@ -62,7 +63,7 @@ export function validateCronJobTaskRecordPreflight(
 
   // 1) Required-field completeness
   const missingRequiredSet = new Set<string>();
-  for (const field of snapshot.requiredFields) {
+  for (const field of cronJobTaskRecordRequiredFields) {
     const value = record[field];
 
     if (value === undefined) {
@@ -71,7 +72,7 @@ export function validateCronJobTaskRecordPreflight(
       continue;
     }
 
-    const expectedTypeUnion = snapshot.fieldTypes[field];
+    const expectedTypeUnion = cronJobTaskRecordFieldTypes[field];
     const allowed = expectedTypeUnion ? parseExpectedType(expectedTypeUnion) : [];
 
     // Enforce required fields as BOTH: (a) present and (b) matching expected runtime type.
@@ -99,7 +100,7 @@ export function validateCronJobTaskRecordPreflight(
   }
 
   // 2) JSON drift detection vs last-known-good snapshot
-  for (const [field, expectedTypeUnion] of Object.entries(snapshot.fieldTypes)) {
+  for (const [field, expectedTypeUnion] of Object.entries(cronJobTaskRecordFieldTypes)) {
     // Only validate drift types when the field is present.
     // Missing required fields are already tracked above.
     if (!(field in record)) continue;
